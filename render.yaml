@@ -3,7 +3,7 @@ services:
     name: elevenlabs-chat
     env: python
     buildCommand: ./build.sh
-    startCommand: python app.py
+    startCommand: gunicorn --worker-class eventlet -w 1 app:app
     envVars:
       - key: AGENT_ID
         value: ${AGENT_ID}
