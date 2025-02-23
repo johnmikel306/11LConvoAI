@@ -1,202 +1,199 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ElevenLabs Conversational AI</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f5f5f5;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-      }
-      .chat-container {
-        width: 100%;
-        max-width: 600px;
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-      }
-      .chat-header {
-        background-color: #007bff;
-        color: #fff;
-        padding: 20px;
-        text-align: center;
-        font-size: 20px;
-        font-weight: bold;
-      }
-      .chat-messages {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        background-color: #f9f9f9;
-      }
-      .message {
-        margin-bottom: 15px;
-        display: flex;
-        flex-direction: column;
-      }
-      .message.user {
-        align-items: flex-end;
-      }
-      .message.agent {
-        align-items: flex-start;
-      }
-      .message-content {
-        max-width: 70%;
-        padding: 12px;
-        border-radius: 12px;
-        background-color: #e0e0e0;
-        color: #333;
-        font-size: 14px;
-        line-height: 1.5;
-      }
-      .message.user .message-content {
-        background-color: #007bff;
-        color: #fff;
-      }
-      .message.agent .message-content {
-        background-color: #f1f1f1;
-        color: #333;
-      }
-      .message-timestamp {
-        font-size: 12px;
-        color: #999;
-        margin-top: 5px;
-      }
-      .chat-controls {
-        display: flex;
-        justify-content: center;
-        padding: 15px;
-        background-color: #fff;
-        border-top: 1px solid #ddd;
-      }
-      .call-btn {
-        background-color: #007bff;
-        color: #fff;
-        border: none;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s ease;
-      }
-      .call-btn.end-call {
-        background-color: #dc3545;
-      }
-      .call-btn i {
-        font-size: 24px;
-      }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.user {
+            align-items: flex-end;
+        }
+        .message.agent {
+            align-items: flex-start;
+        }
+        .message-content {
+            max-width: 70%;
+            padding: 12px;
+            border-radius: 12px;
+            background-color: #e0e0e0;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .message.user .message-content {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .message.agent .message-content {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        .message-timestamp {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        .chat-controls {
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+        }
+        .call-btn {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+        .call-btn.end-call {
+            background-color: #dc3545;
+        }
+        .call-btn i {
+            font-size: 24px;
+        }
     </style>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-  </head>
-  <body>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
     <div class="chat-container">
-      <div class="chat-header">ElevenLabs Conversational AI</div>
-      <div class="chat-messages" id="chat-messages">
-        <!-- Messages will be dynamically added here -->
-      </div>
-      <div class="chat-controls">
-        <button class="call-btn" id="call-btn">
-          <i class="fas fa-phone"></i>
-        </button>
-      </div>
+        <div class="chat-header">
+            ElevenLabs Conversational AI
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be dynamically added here -->
+        </div>
+        <div class="chat-controls">
+            <button class="call-btn" id="call-btn">
+                <i class="fas fa-phone"></i>
+            </button>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
-      const socket = io();
-      const chatMessages = document.getElementById("chat-messages");
-      const callBtn = document.getElementById("call-btn");
+        const socket = io();
+        const chatMessages = document.getElementById('chat-messages');
+        const callBtn = document.getElementById('call-btn');
 
-      let mediaRecorder;
-      let audioChunks = [];
-      let isCallActive = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isCallActive = false;
 
-      // Function to add a message to the chat
-      function addMessage(sender, message) {
-        const messageDiv = document.createElement("div");
-        messageDiv.classList.add("message", sender);
+        // Function to add a message to the chat
+        function addMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
 
-        const contentDiv = document.createElement("div");
-        contentDiv.classList.add("message-content");
-        contentDiv.textContent = message;
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+            contentDiv.textContent = message;
 
-        const timestampDiv = document.createElement("div");
-        timestampDiv.classList.add("message-timestamp");
-        timestampDiv.textContent = new Date().toLocaleTimeString();
+            const timestampDiv = document.createElement('div');
+            timestampDiv.classList.add('message-timestamp');
+            timestampDiv.textContent = new Date().toLocaleTimeString();
 
-        messageDiv.appendChild(contentDiv);
-        messageDiv.appendChild(timestampDiv);
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      }
-
-      // Start recording
-      async function startRecording() {
-        audioChunks = [];
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (event) => {
-          audioChunks.push(event.data);
-        };
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Audio = reader.result.split(",")[1];
-            socket.emit("send_audio", { audio: base64Audio });
-          };
-          reader.readAsDataURL(audioBlob);
-        };
-        mediaRecorder.start();
-      }
-
-      // Stop recording
-      function stopRecording() {
-        mediaRecorder.stop();
-      }
-
-      // Toggle call
-      callBtn.addEventListener("click", () => {
-        if (isCallActive) {
-          // End call
-          stopRecording();
-          callBtn.classList.remove("end-call");
-          callBtn.innerHTML = '<i class="fas fa-phone"></i>';
-          isCallActive = false;
-          addMessage("system", "Call ended.");
-        } else {
-          // Start call
-          startRecording();
-          callBtn.classList.add("end-call");
-          callBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
-          isCallActive = true;
-          addMessage("system", "Call started.");
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timestampDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
-      });
 
-      // Receive message
-      socket.on("new_message", (data) => {
-        addMessage(data.sender, data.message);
-      });
+        // Start recording
+        async function startRecording() {
+            audioChunks = [];
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    socket.emit('send_audio', { audio: base64Audio });
+                };
+                reader.readAsDataURL(audioBlob);
+            };
+            mediaRecorder.start();
+        }
+
+        // Stop recording
+        function stopRecording() {
+            mediaRecorder.stop();
+        }
+
+        // Toggle call
+        callBtn.addEventListener('click', () => {
+            if (isCallActive) {
+                // End call
+                stopRecording();
+                callBtn.classList.remove('end-call');
+                callBtn.innerHTML = '<i class="fas fa-phone"></i>';
+                isCallActive = false;
+                addMessage('system', 'Call ended.');
+            } else {
+                // Start call
+                startRecording();
+                callBtn.classList.add('end-call');
+                callBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
+                isCallActive = true;
+                addMessage('system', 'Call started.');
+            }
+        });
+
+        // Receive message
+        socket.on('new_message', (data) => {
+            addMessage(data.sender, data.message);
+        });
     </script>
-  </body>
+</body>
 </html>

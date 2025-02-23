@@ -1,7 +1,4 @@
 Flask
 Flask-SocketIO
-requests
 elevenlabs
-elevenlabs[pyaudio]
 pydantic
-pyaudio

@@ -1,22 +1,18 @@
 import os
-import signal
-import sys
-import requests
-from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
-from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
 
 # Initialize Flask app
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Load environment variables
-load_dotenv()
 AGENT_ID = os.environ.get('AGENT_ID')
 API_KEY = os.environ.get('ELEVENLABS_API_KEY')
+
+# Initialize conversation
 conversation = None
 chat_history = []
 
@@ -36,7 +32,6 @@ def initialize_conversation():
         client,
         AGENT_ID,
         requires_auth=bool(API_KEY),
-        audio_interface=DefaultAudioInterface(),
         callback_agent_response=lambda response: store_message('agent', response),
         callback_user_transcript=lambda transcript: store_message('user', transcript),
     )
@@ -56,23 +51,19 @@ def start_conversation():
 def stop_conversation():
     global conversation
     if conversation:
-        try:
-            conversation.end_session()
-        except Exception as e:
-            print(f"Error ending session: {e}")
-        finally:
-            conversation = None
+        conversation.end_session()
+        conversation = None
     return jsonify({'status': 'success'})
 
 @app.route('/transcript', methods=['GET'])
 def get_transcript():
     return jsonify({'transcript': chat_history})
 
-# Add route for main page
+# Serve the frontend
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Run server
+# Run the app
 if __name__ == '__main__':
     socketio.run(app, debug=True)
