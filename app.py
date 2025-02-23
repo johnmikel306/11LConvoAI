@@ -66,4 +66,9 @@ def index():
 
 # Run the app
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    # Use Gunicorn in production
+    if os.environ.get('RENDER'):
+        socketio.run(app, host='0.0.0.0', port=10000, allow_unsafe_werkzeug=True)
+    else:
+        # Use Flask's development server for local testing
+        socketio.run(app, debug=True)
