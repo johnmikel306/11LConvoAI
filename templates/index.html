@@ -123,8 +123,6 @@
         const chatMessages = document.getElementById('chat-messages');
         const callBtn = document.getElementById('call-btn');
 
-        let mediaRecorder;
-        let audioChunks = [];
         let isCallActive = false;
 
         // Function to add a message to the chat
@@ -146,43 +144,18 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // Start recording
-        async function startRecording() {
-            audioChunks = [];
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const base64Audio = reader.result.split(',')[1];
-                    socket.emit('send_audio', { audio: base64Audio });
-                };
-                reader.readAsDataURL(audioBlob);
-            };
-            mediaRecorder.start();
-        }
-
-        // Stop recording
-        function stopRecording() {
-            mediaRecorder.stop();
-        }
-
         // Toggle call
         callBtn.addEventListener('click', () => {
             if (isCallActive) {
                 // End call
-                stopRecording();
+                socket.emit('stop_call');
                 callBtn.classList.remove('end-call');
                 callBtn.innerHTML = '<i class="fas fa-phone"></i>';
                 isCallActive = false;
                 addMessage('system', 'Call ended.');
             } else {
                 // Start call
-                startRecording();
+                socket.emit('start_call');
                 callBtn.classList.add('end-call');
                 callBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
                 isCallActive = true;
@@ -193,6 +166,15 @@
         // Receive message
         socket.on('new_message', (data) => {
             addMessage(data.sender, data.message);
+        });
+
+        // Handle call status updates
+        socket.on('call_status', (data) => {
+            if (data.status === 'started') {
+                addMessage('system', 'Call started.');
+            } else if (data.status === 'ended') {
+                addMessage('system', 'Call ended.');
+            }
         });
     </script>
 </body>

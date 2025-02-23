@@ -2,10 +2,10 @@ services:
   - type: web
     name: elevenlabs-chat
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --worker-class eventlet -w 1 app:app
+    buildCommand: ./build.sh
+    startCommand: python app.py
     envVars:
       - key: AGENT_ID
-        value: your_agent_id
+        value: ${AGENT_ID}
       - key: ELEVENLABS_API_KEY
-        value: your_api_key
+        value: ${ELEVENLABS_API_KEY}

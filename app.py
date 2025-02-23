@@ -1,18 +1,22 @@
 import os
+import signal
+import sys
+import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template
 from flask_socketio import SocketIO
 from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
+from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
 
 # Initialize Flask app
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 # Load environment variables
-AGENT_ID = os.environ.get('AGENT_ID')
-API_KEY = os.environ.get('ELEVENLABS_API_KEY')
-
-# Initialize conversation
+load_dotenv()
+AGENT_ID = os.getenv('AGENT_ID')
+API_KEY = os.getenv('ELEVENLABS_API_KEY')
 conversation = None
 chat_history = []
 
@@ -32,6 +36,7 @@ def initialize_conversation():
         client,
         AGENT_ID,
         requires_auth=bool(API_KEY),
+        audio_interface=DefaultAudioInterface(),
         callback_agent_response=lambda response: store_message('agent', response),
         callback_user_transcript=lambda transcript: store_message('user', transcript),
     )
@@ -66,9 +71,4 @@ def index():
 
 # Run the app
 if __name__ == '__main__':
-    # Use Gunicorn in production
-    if os.environ.get('RENDER'):
-        socketio.run(app, host='0.0.0.0', port=10000, allow_unsafe_werkzeug=True)
-    else:
-        # Use Flask's development server for local testing
-        socketio.run(app, debug=True)
+    socketio.run(app, debug=True)
