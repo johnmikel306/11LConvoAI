@@ -15,8 +15,8 @@ socketio = SocketIO(app)
 
 # Load environment variables
 load_dotenv()
-AGENT_ID = os.getenv('AGENT_ID')
-API_KEY = os.getenv('ELEVENLABS_API_KEY')
+AGENT_ID = os.environ.get('AGENT_ID')
+API_KEY = os.environ.get('ELEVENLABS_API_KEY')
 conversation = None
 chat_history = []
 

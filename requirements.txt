@@ -1,6 +1,5 @@
 Flask
 Flask-SocketIO
-python-dotenv
 requests
 elevenlabs
 elevenlabs[pyaudio]
