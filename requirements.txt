@@ -4,3 +4,4 @@ requests
 elevenlabs
 elevenlabs[pyaudio]
 pydantic
+pyaudio
