@@ -3,3 +3,4 @@ Flask-SocketIO
 elevenlabs
 pydantic
 gunicorn
+eventlet
