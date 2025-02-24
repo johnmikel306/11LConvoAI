@@ -7,175 +7,119 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            margin: 20px;
+            background-color: #f4f4f9;
+            color: #333;
         }
-        .chat-container {
-            width: 100%;
-            max-width: 600px;
+        h1 {
+            color: #444;
+        }
+        #chat {
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: scroll;
             background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        .chat-header {
-            background-color: #007bff;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #f9f9f9;
+            margin-bottom: 20px;
         }
         .message {
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
+            margin-bottom: 10px;
         }
         .message.user {
-            align-items: flex-end;
+            color: #007bff;
         }
         .message.agent {
-            align-items: flex-start;
+            color: #28a745;
         }
-        .message-content {
-            max-width: 70%;
-            padding: 12px;
-            border-radius: 12px;
-            background-color: #e0e0e0;
-            color: #333;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .message.user .message-content {
-            background-color: #007bff;
-            color: #fff;
-        }
-        .message.agent .message-content {
-            background-color: #f1f1f1;
-            color: #333;
-        }
-        .message-timestamp {
-            font-size: 12px;
-            color: #999;
-            margin-top: 5px;
-        }
-        .chat-controls {
-            display: flex;
-            justify-content: center;
-            padding: 15px;
-            background-color: #fff;
-            border-top: 1px solid #ddd;
-        }
-        .call-btn {
-            background-color: #007bff;
-            color: #fff;
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
             border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background-color: #007bff;
+            color: #fff;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s ease;
+            border-radius: 5px;
         }
-        .call-btn.end-call {
-            background-color: #dc3545;
-        }
-        .call-btn i {
-            font-size: 24px;
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            ElevenLabs Conversational AI
-        </div>
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be dynamically added here -->
-        </div>
-        <div class="chat-controls">
-            <button class="call-btn" id="call-btn">
-                <i class="fas fa-phone"></i>
-            </button>
-        </div>
-    </div>
+    <h1>ElevenLabs Conversational AI</h1>
+    <div id="chat"></div>
+    <button id="startBtn">Start Conversation</button>
+    <button id="stopBtn" disabled>Stop Conversation</button>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
         const socket = io();
-        const chatMessages = document.getElementById('chat-messages');
-        const callBtn = document.getElementById('call-btn');
 
-        let isCallActive = false;
+        const chatDiv = document.getElementById('chat');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
 
         // Function to add a message to the chat
         function addMessage(sender, message) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', sender);
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-            contentDiv.textContent = message;
-
-            const timestampDiv = document.createElement('div');
-            timestampDiv.classList.add('message-timestamp');
-            timestampDiv.textContent = new Date().toLocaleTimeString();
-
-            messageDiv.appendChild(contentDiv);
-            messageDiv.appendChild(timestampDiv);
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            messageDiv.textContent = `${sender}: ${message}`;
+            chatDiv.appendChild(messageDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
         }
 
-        // Toggle call
-        callBtn.addEventListener('click', () => {
-            if (isCallActive) {
-                // End call
-                socket.emit('stop_call');
-                callBtn.classList.remove('end-call');
-                callBtn.innerHTML = '<i class="fas fa-phone"></i>';
-                isCallActive = false;
-                addMessage('system', 'Call ended.');
-            } else {
-                // Start call
-                socket.emit('start_call');
-                callBtn.classList.add('end-call');
-                callBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
-                isCallActive = true;
-                addMessage('system', 'Call started.');
-            }
-        });
-
-        // Receive message
+        // Listen for new messages from the server
         socket.on('new_message', (data) => {
             addMessage(data.sender, data.message);
         });
 
-        // Handle call status updates
-        socket.on('call_status', (data) => {
-            if (data.status === 'started') {
-                addMessage('system', 'Call started.');
-            } else if (data.status === 'ended') {
-                addMessage('system', 'Call ended.');
+        // Start conversation
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            const response = await fetch('/start', {
+                method: 'POST',
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                addMessage('system', 'Conversation started.');
+            } else {
+                addMessage('system', 'Failed to start conversation: ' + result.message);
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
             }
         });
+
+        // Stop conversation
+        stopBtn.addEventListener('click', async () => {
+            stopBtn.disabled = true;
+            startBtn.disabled = false;
+
+            const response = await fetch('/stop', {
+                method: 'POST',
+            });
+
+            const result = await response.json();
+            if (result.status === 'success') {
+                addMessage('system', 'Conversation stopped.');
+            } else {
+                addMessage('system', 'Failed to stop conversation.');
+                stopBtn.disabled = false;
+                startBtn.disabled = true;
+            }
+        });
+
+        // Fetch transcript on page load
+        window.onload = async () => {
+            const response = await fetch('/transcript');
+            const result = await response.json();
+            result.transcript.forEach((msg) => {
+                addMessage(msg.sender, msg.message);
+            });
+        };
     </script>
 </body>
 </html>
