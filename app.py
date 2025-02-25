@@ -64,11 +64,11 @@ def stop_conversation():
 def get_transcript():
     return jsonify({'transcript': chat_history})
 
-# Serve the frontend
+# Add route for main page
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Run the app
+# Run server
 if __name__ == '__main__':
     socketio.run(app, debug=True)
