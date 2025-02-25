@@ -4,3 +4,4 @@ elevenlabs
 pydantic
 gunicorn
 eventlet
+python-dotenv
