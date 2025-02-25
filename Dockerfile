@@ -9,6 +9,7 @@ COPY requirements.txt .
 
 # Install system dependencies and Python packages
 RUN apt-get update && apt-get install -y \
+    build-essential \
     portaudio19-dev \
     python3-dev \
     && pip install --no-cache-dir -r requirements.txt
