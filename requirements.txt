@@ -6,3 +6,4 @@ gunicorn
 eventlet
 python-dotenv
 elevenlabs[pyaudio]
+groq
