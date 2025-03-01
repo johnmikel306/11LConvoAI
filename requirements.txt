@@ -1,5 +1,6 @@
 Flask
 Flask-SocketIO
+python-socketio
 elevenlabs
 pydantic
 gunicorn

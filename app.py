@@ -13,13 +13,13 @@ from groq import Groq
 
 # Initialize Flask app
 app = Flask(__name__)
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='threading')
 
 # Load environment variables
 load_dotenv()
 AGENT_ID = os.getenv('AGENT_ID')
 API_KEY = os.getenv('ELEVENLABS_API_KEY')
-GROQ_API_KEY = "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"
+# GROQ_API_KEY = "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"
 
 conversation = None
 chat_history = []
@@ -28,6 +28,7 @@ chat_history = []
 def store_message(sender, message):
     chat_history.append({'sender': sender, 'message': message})
     socketio.emit('new_message', {'sender': sender, 'message': message})
+    # socketio.sleep(0)  # Force real-time update
 
 # Initialize conversation
 def initialize_conversation():
@@ -63,28 +64,29 @@ def stop_conversation():
         conversation.end_session()
         conversation = None
         
-        client = Groq(api_key=GROQ_API_KEY)
-        completion = client.chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "write the system prompt and instructions here"
-                },
-                {
-                    "role": "user",
-                    "content": f"Conversation Transcript: {chat_history}"
-                }
-            ],
-            temperature=1,
-            max_completion_tokens=1024,
-            top_p=1,
-            stream=True,
-            stop=None,
-        )
+        # client = Groq(api_key=GROQ_API_KEY)
+        # completion = client.chat.completions.create(
+        #     model="deepseek-r1-distill-llama-70b",
+        #     messages=[
+        #         {
+        #             "role": "system",
+        #             "content": "write the system prompt and instructions here"
+        #         },
+        #         {
+        #             "role": "user",
+        #             "content": f"Conversation Transcript: {chat_history}"
+        #         }
+        #     ],
+        #     temperature=1,
+        #     max_completion_tokens=1024,
+        #     top_p=1,
+        #     stream=True,
+        #     stop=None,
+        # )
 
-        for chunk in completion:
-            print(chunk.choices[0].delta.content or "", end="")
+        # for chunk in completion:
+        #     socketio.emit('new_message', {'sender': 'agent', 'message': chunk.choices[0].delta.content or ""})
+
 
     return jsonify({'status': 'success'})
 
