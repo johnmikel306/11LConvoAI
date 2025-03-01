@@ -8,6 +8,8 @@ from flask_socketio import SocketIO
 from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
+from groq import Groq
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -17,6 +19,8 @@ socketio = SocketIO(app)
 load_dotenv()
 AGENT_ID = os.getenv('AGENT_ID')
 API_KEY = os.getenv('ELEVENLABS_API_KEY')
+GROQ_API_KEY = "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"
+
 conversation = None
 chat_history = []
 
@@ -58,6 +62,30 @@ def stop_conversation():
     if conversation:
         conversation.end_session()
         conversation = None
+        
+        client = Groq(api_key=GROQ_API_KEY)
+        completion = client.chat.completions.create(
+            model="deepseek-r1-distill-llama-70b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "write the system prompt and instructions here"
+                },
+                {
+                    "role": "user",
+                    "content": f"Conversation Transcript: {chat_history}"
+                }
+            ],
+            temperature=1,
+            max_completion_tokens=1024,
+            top_p=1,
+            stream=True,
+            stop=None,
+        )
+
+        for chunk in completion:
+            print(chunk.choices[0].delta.content or "", end="")
+
     return jsonify({'status': 'success'})
 
 @app.route('/transcript', methods=['GET'])
@@ -68,6 +96,9 @@ def get_transcript():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+
 
 # Run server
 if __name__ == '__main__':
