@@ -1,8 +1,0 @@
-Flask
-Flask-SocketIO
-elevenlabs
-pydantic
-gunicorn
-eventlet
-python-dotenv
-elevenlabs[pyaudio]
