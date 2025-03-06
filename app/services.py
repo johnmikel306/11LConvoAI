@@ -35,7 +35,7 @@ def initialize_conversation():
         client,
         AGENT_ID,
         requires_auth=bool(API_KEY),
-        # audio_interface=DefaultAudioInterface(),
+        audio_interface=DefaultAudioInterface(),
         callback_agent_response=lambda response: store_message('agent', response),
         callback_user_transcript=lambda transcript: store_message('user', transcript),
     )
