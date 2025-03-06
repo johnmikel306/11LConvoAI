@@ -26,7 +26,11 @@ startBtn.addEventListener('click', async () => {
 
     const result = await response.json();
     if (result.status === 'success') {
+        const audioUrl = result.signed_url; // Get the signed URL for audio
+        audioPlayer.src = audioUrl; // Set the audio source
+        audioPlayer.play(); // Play the audio
         addMessage('system', 'Conversation started.');
+
     } else {
         addMessage('system', 'Failed to start conversation: ' + result.message);
         startBtn.disabled = false;

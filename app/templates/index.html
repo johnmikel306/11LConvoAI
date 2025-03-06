@@ -51,10 +51,12 @@
     <div id="chat"></div>
     <button id="startBtn">Start Conversation</button>
     <button id="stopBtn" disabled>Stop Conversation</button>
+    <audio id="audioPlayer" controls style="display:none;"></audio>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
       const socket = io();
+      const audioPlayer = document.getElementById('audioPlayer');
 
       const chatDiv = document.getElementById("chat");
       const startBtn = document.getElementById("startBtn");
@@ -82,6 +84,9 @@
 
         const result = await response.json();
         if (result.status === "success") {
+          const audioUrl = result.signed_url; // Get the signed URL for audio
+          audioPlayer.src = audioUrl; // Set the audio source
+          audioPlayer.play(); // Play the audio
           addMessage("system", "Conversation started.");
         } else {
           addMessage(
