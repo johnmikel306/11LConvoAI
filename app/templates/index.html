@@ -31,6 +31,9 @@
       .message.agent {
         color: #28a745;
       }
+      .message.system {
+        color: #6c757d;
+      }
       button {
         padding: 10px 20px;
         margin-right: 10px;
@@ -44,10 +47,24 @@
         background-color: #ccc;
         cursor: not-allowed;
       }
+      #loginBtn {
+        background-color: #28a745;
+      }
+      #logoutBtn {
+        background-color: #dc3545;
+      }
     </style>
   </head>
   <body>
     <h1>ElevenLabs Conversational AI</h1>
+    <div id="userInfo">
+      {% if 'user' in session %}
+        <p>Welcome, <strong>{{ session['user'] }}</strong>!</p>
+        <button id="logoutBtn">Logout</button>
+      {% else %}
+        <button id="loginBtn">Login with CAS</button>
+      {% endif %}
+    </div>
     <div id="chat"></div>
     <button id="startBtn">Start Conversation</button>
     <button id="stopBtn" disabled>Stop Conversation</button>
@@ -61,6 +78,8 @@
       const chatDiv = document.getElementById("chat");
       const startBtn = document.getElementById("startBtn");
       const stopBtn = document.getElementById("stopBtn");
+      const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
 
       function addMessage(sender, message) {
         const messageDiv = document.createElement("div");
@@ -70,10 +89,12 @@
         chatDiv.scrollTop = chatDiv.scrollHeight;
       }
 
+      // Handle new messages from the server
       socket.on("new_message", (data) => {
         addMessage(data.sender, data.message);
       });
 
+      // Start Conversation
       startBtn.addEventListener("click", async () => {
         startBtn.disabled = true;
         stopBtn.disabled = false;
@@ -98,6 +119,7 @@
         }
       });
 
+      // Stop Conversation
       stopBtn.addEventListener("click", async () => {
         stopBtn.disabled = true;
         startBtn.disabled = false;
@@ -116,6 +138,21 @@
         }
       });
 
+      // Login with CAS
+      if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+          window.location.href = "/cas/login";
+        });
+      }
+
+      // Logout
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          window.location.href = "/cas/logout";
+        });
+      }
+
+      // Load transcript on page load
       window.onload = async () => {
         const response = await fetch("/transcript");
         const result = await response.json();

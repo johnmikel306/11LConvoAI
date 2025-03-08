@@ -1,10 +1,21 @@
+from .models import User
 import os
 from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
+
 from . import socketio
 from flask import jsonify
 import logging
+
+#interact with the database
+def create_user(username, email):
+    user = User(username, email)
+    user.save_to_db()
+    return user
+
+def get_user_by_username(username):
+    return User.find_by_username(username)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -39,17 +50,25 @@ def initialize_conversation():
         callback_agent_response=lambda response: store_message('agent', response),
         callback_user_transcript=lambda transcript: store_message('user', transcript),
     )
-    conversation.start_session()
     logger.info("Conversation initialized with ID: %s", conversation._conversation_id)
-    signed_url = conversation.client.conversational_ai.get_signed_url(AGENT_ID)
-    return (conversation._conversation_id, signed_url)
+    return conversation
+
+def get_signed_url():
+    if not AGENT_ID:
+        logger.error("AGENT_ID environment variable must be set")
+        raise Exception("AGENT_ID environment variable must be set")
+    client = ElevenLabs(api_key=API_KEY)
+    signed_url = client.conversational_ai.get_signed_url(AGENT_ID)
+    return signed_url
 
 # API Endpoints
 def start_conversation():
     try:
-        conv_id, signed_url = initialize_conversation()
+        conversation = initialize_conversation()
+        conversation.start_session()
+        conv_id = conversation._conversation_id
         logger.info("Conversation started with ID: %s", conv_id)
-        return jsonify({'status': 'success', 'conversation_id': conv_id, 'signed_url': signed_url})
+        return jsonify({'status': 'success', 'conversation_id': conv_id})
     except Exception as e:
         logger.error("Error starting conversation: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -65,3 +84,11 @@ def stop_conversation():
 def get_transcript():
     logger.info("Fetching transcript")
     return jsonify({'transcript': chat_history})
+
+def get_signed_url_endpoint():
+    try:
+        signed_url = get_signed_url()
+        return jsonify({'signed_url': signed_url})
+    except Exception as e:
+        logger.error(f"Error getting signed URL: {e}")
+        return jsonify({'error': 'Failed to get signed URL'}), 500
