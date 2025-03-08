@@ -12,7 +12,7 @@ A Flask application that utilizes the ElevenLabs API for conversational AI.
    ```
 2. Run the Docker container:
    ```bash
-   docker run -p 5000:5000 elevenlabs-chat
+   docker run -p 8888:8888 elevenlabs-chat
    ```
 
 ### Using pip
@@ -31,7 +31,7 @@ Run the application:
 ```bash
 python run.py
 ```
-Access the application at `http://localhost:5000`.
+Access the application at `http://localhost:8888`.
 
 ## Endpoints
 - **`/`**: Renders the index page.

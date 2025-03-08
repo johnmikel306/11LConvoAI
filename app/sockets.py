@@ -1,6 +1,3 @@
-from flask_socketio import emit
-from .services import store_message
-from . import socketio
 from .utils.logger import logger
 
 def init_sockets(socketio):
@@ -12,10 +9,3 @@ def init_sockets(socketio):
     def handle_disconnect():
         logger.info("Client disconnected")
 
-    @socketio.on('new_message')
-    def handle_new_message(data):
-        logger.info(f"New message received: {data}")
-        store_message(data['sender'], data['message'])
-
-# Initialize sockets
-init_sockets(socketio)

@@ -1,32 +1,32 @@
 # Initialize Flask app and extensions
+import asyncio
 from flask import Flask
-from flask_pymongo import PyMongo
-from .utils.cas_helper import validate_service_ticket  # Import CAS helper
-
-# Initialize PyMongo
-mongo = PyMongo()
-
 from flask_socketio import SocketIO
-from dotenv import load_dotenv
-import os
-from .utils.logger import logger
 
-# Load environment variables
-load_dotenv()
-# Initialize Flask app
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
+from .sockets import init_sockets
+from .routes import init_routes
+from .config.db import setup_db
 
-# Configure MongoDB
-app.config["MONGO_URI"] = os.getenv("MONGO_URI")
-mongo.init_app(app)
-# mongo = PyMongo(app)
+def init_app():
+  # Initialize Flask app
+  app = Flask(__name__)
 
-# Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+  # Initialize SocketIO
+  socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+  
+  # Return the app and socketio instances
+  return app, socketio
 
-# Import routes and sockets
-from . import routes, sockets
+(app, socketio) = init_app()
+
+# Init DB
+asyncio.run(setup_db())
+
+# Initialize routes
+init_routes(app)
+
+# Initialize sockets
+init_sockets(socketio)
 
 # Export app and socketio for use in other modules
 __all__ = ['app', 'socketio']

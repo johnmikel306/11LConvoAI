@@ -1,8 +1,9 @@
-from flask import render_template, redirect, url_for, request, session
+import datetime
+from flask import jsonify, render_template, redirect, url_for, request, session
+import jwt
 from .utils.cas_helper import validate_service_ticket
 import os
 from .services import start_conversation, stop_conversation, get_transcript, get_signed_url_endpoint
-from . import app  # Import the app variable
 import logging
 
 # Set up logging
@@ -36,19 +37,19 @@ def init_routes(app):
         return get_signed_url_endpoint()
 
     # CAS Login Route
-    @app.route('/cas/login')
+    @app.route('/cas/auth-url', methods=['GET'])
     def cas_login():
         # Redirect to CAS login page
         service_url = url_for('cas_validate', _external=True)
         cas_login_url = f"{os.getenv('CAS_LOGIN_URL')}?service={service_url}"
         logger.info(f"Redirecting to CAS login: {cas_login_url}")
-        return (cas_login_url)
+        return jsonify({'url': cas_login_url})
 
     # CAS Validation Route
-    @app.route('/cas/validate')
+    @app.route('/cas/validate', methods=['POST'])
     def cas_validate():
         # Get the Service Ticket (ST) from the query parameters
-        ticket = request.args.get('ticket')
+        ticket = request.form['ticket']
         if not ticket:
             logger.error("Invalid request: No ticket provided.")
             return "Invalid request: No ticket provided."
@@ -58,13 +59,17 @@ def init_routes(app):
         user_email = validate_service_ticket(ticket, service_url)
 
         if user_email:
-            # Store the user's email in the session
-            session['user'] = user_email
-            logger.info(f"User {user_email} logged in successfully.")
-            return redirect(url_for('index'))
+            # Save the user to DB
+
+            token = jwt.encode({
+                'email': user_email,
+                'exp' : datetime.utcnow() + datetime.timedelta(days=7)
+            }, os.getenv('JWT_SECRET'))
+            
+            return jsonify({'token': token.decode('UTF-8')})
         else:
             logger.error("Failed to validate CAS ticket.")
-            return "Failed to validate ticket. Please try again."
+            return jsonify({ "error": "Failed to validate ticket. Please try again." })
 
     # CAS Logout Route
     @app.route('/cas/logout')
@@ -74,6 +79,3 @@ def init_routes(app):
         logger.info("User logged out.")
         return redirect(url_for('index'))
 
-
-# Initialize routes
-init_routes(app)

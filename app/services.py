@@ -4,7 +4,6 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
 
-from . import socketio
 from flask import jsonify
 import logging
 
@@ -32,7 +31,6 @@ chat_history = []
 # Store chat messages
 def store_message(sender, message):
     chat_history.append({'sender': sender, 'message': message})
-    socketio.emit('new_message', {'sender': sender, 'message': message})
 
 # Initialize conversation
 def initialize_conversation():
