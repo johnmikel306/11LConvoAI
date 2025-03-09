@@ -1,7 +1,9 @@
 
 # decorator for verifying the JWT
+from asyncio.log import logger
 from functools import wraps
 import os
+from app.services import get_user_by_email
 from flask import jsonify, request
 import jwt
 
@@ -21,10 +23,25 @@ def token_required(f):
         try:
             # decoding the payload to fetch the stored details
             data = jwt.decode(token, os.getenv('JWT_SECRET'))
+            email = data.get('email')
+            if not email:
+                return jsonify({message: 'Email not found in token'}), 401
              # Fetch the user details using the email from DB and store in current_user
-        except:
+            user = get_user_by_email(email)
+            if not user:
+                return jsonify({'message' : 'User not found!'}), 401
+            
+            #store the user in the request context
+            request.current_user = user
+            logger.info(f"User {user.email} is authenticated")
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Token is invalid!'}), 401
+        except Exception as e:
+            logger.error(f"An error occur validating the token : {e}")
             return jsonify({
-                'message' : 'Token is invalid!'
+                'message': 'Token is invalid!'
             }), 401
         # returns the current logged in users context to the routes
         return  f(*args, **kwargs)

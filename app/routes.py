@@ -3,12 +3,13 @@ from flask import jsonify, render_template, redirect, url_for, request, session
 import jwt
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import start_conversation, stop_conversation, get_transcript, get_signed_url_endpoint
+from .services import create_user, start_conversation, stop_conversation, get_transcript, get_signed_url_endpoint
 import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def init_routes(app):
     @app.route('/')
@@ -60,13 +61,19 @@ def init_routes(app):
 
         if user_email:
             # Save the user to DB
+            try:
+                create_user(user_email)  # Call create_user to save the user
+            except Exception as e:
+                logger.error(f"Failed to create user: {e}")
+                return jsonify({ "error": "Failed to create user." }), 500
 
             token = jwt.encode({
                 'email': user_email,
                 'exp' : datetime.utcnow() + datetime.timedelta(days=7)
-            }, os.getenv('JWT_SECRET'))
-            
+            }, os.getenv('JWT_SECRET'))   
+
             return jsonify({'token': token.decode('UTF-8')})
+
         else:
             logger.error("Failed to validate CAS ticket.")
             return jsonify({ "error": "Failed to validate ticket. Please try again." })
@@ -78,4 +85,3 @@ def init_routes(app):
         session.pop('user', None)
         logger.info("User logged out.")
         return redirect(url_for('index'))
-

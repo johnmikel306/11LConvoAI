@@ -7,14 +7,14 @@ from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInt
 from flask import jsonify
 import logging
 
-#interact with the database
-def create_user(username, email):
-    user = User(username, email)
-    user.save_to_db()
+# Interact with the database
+async def create_user(email):
+    user = User(email=email)  # Ensure the user is created with email
+    await user.save_to_db()  # Save the user to the database
     return user
 
-def get_user_by_username(username):
-    return User.find_by_username(username)
+async def get_user_by_email(email):
+    return await User.find_by_email(email)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
