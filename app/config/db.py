@@ -8,6 +8,12 @@ async def setup_db():
   # Load environment variables
   load_dotenv()
 
+  # Validate required environment variables
+  required_vars = ["MONGO_URI", "JWT_SECRET", "ELEVENLABS_API_KEY", "AGENT_ID"]
+  for var in required_vars:
+      if not os.getenv(var):
+          raise ValueError(f"Missing required environment variable: {var}")
+
   # Configure MongoDB using Beanie
   dbURI = os.getenv("MONGO_URI")
   dbURI = "mongodb://localhost:27017/ailp-dev" if (dbURI is None) else dbURI

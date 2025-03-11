@@ -25,7 +25,7 @@ def token_required(f):
             data = jwt.decode(token, os.getenv('JWT_SECRET'))
             email = data.get('email')
             if not email:
-                return jsonify({message: 'Email not found in token'}), 401
+                return jsonify({'message': 'Email not found in token'}), 401
              # Fetch the user details using the email from DB and store in current_user
             user = get_user_by_email(email)
             if not user:
