@@ -3,8 +3,10 @@ from flask import jsonify, render_template, redirect, url_for, request, session
 import jwt
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import AGENT_ID, create_user, get_transcript, start_conversation, stop_conversation, grade_conversation, get_signed_url_endpoint
+from .services import AGENT_ID, create_user, get_transcript, start_conversation, stop_conversation, get_signed_url_endpoint
 from .utils.logger import logger
+from .utils.grading import grade_conversation
+from .models import Grade, CaseStudy
 
 def init_routes(app):
     @app.route('/')
@@ -23,10 +25,51 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
 
     @app.route('/stop', methods=['POST'])
-    def stop():
+    async def stop():
         try:
             logger.info("Stop conversation endpoint called")
-            return stop_conversation()
+
+            # Stop the conversation
+            global conversation
+            if conversation:
+                conversation.end_session()
+                logger.info("Conversation ended")
+
+                # Get the conversation ID and transcript
+                conversation_id = conversation._conversation_id
+                transcript = get_transcript(conversation_id)
+
+                # Grade the conversation
+                try:
+                    grading_result = grade_conversation(transcript)
+                except Exception as e:
+                    logger.error(f"Error grading conversation: {e}")
+                    return jsonify({
+                        "status": "error",
+                        "message": "Failed to grade conversation.",
+                        "details": str(e)
+                    }), 500
+            
+                # Save the grade to the database
+                grade = Grade(
+                    user=request.current_user,
+                    case_study=CaseStudy(agent_id=transcript["agent_id"]),
+                    grade=grading_result.individual_scores,
+                    conversation_id=conversation_id,
+                    feedback=grading_result.performance_summary,
+                )
+                await grade.insert()
+
+                # Return the grading result in JSON format
+                return jsonify({
+                    "status": "success",
+                    "message": "Conversation stopped and graded.",
+                    "final_score": grading_result.final_score,
+                    "individual_scores": grading_result.individual_scores,
+                    "performance_summary": grading_result.performance_summary,
+                })
+            else:
+                return jsonify({"status": "error", "message": "No active conversation to stop."}), 400
         except Exception as e:
             logger.error(f"Error in /stop: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -112,24 +155,5 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "No user in session."}), 400
         except Exception as e:
             logger.error(f"Error in /cas/logout: {e}")
-            return jsonify({"status": "error", "message": str(e)}), 500
-
-    @app.route('/grade', methods=['POST'])
-    def grade():
-        """
-        Grade the conversation and save the grades to MongoDB.
-        """
-        try:
-            conversation_id = request.json.get('conversation_id')
-            if not conversation_id:
-                return jsonify({"status": "error", "message": "Conversation ID is required"}), 400
-
-            # Get the user's email from the JWT token
-            user_email = request.current_user.email
-
-            # Grade the conversation
-            return grade_conversation(AGENT_ID, conversation_id, user_email)
-        except Exception as e:
-            logger.error(f"Error in /grade: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
 
