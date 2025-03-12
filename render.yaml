@@ -1,7 +1,7 @@
 services:
   - type: web
     name: elevenlabs-chat
-    env: python
+    env: docker
     buildCommand: ./build.sh
     startCommand: gunicorn --worker-class eventlet -w 1 app:app
     envVars:
@@ -9,3 +9,9 @@ services:
         value: ${AGENT_ID}
       - key: ELEVENLABS_API_KEY
         value: ${ELEVENLABS_API_KEY}
+      - key: MONGO_URI
+        value: ${MONGO_URI}
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+      - key: CAS_LOGIN_URL
+        value: ${CAS_LOGIN_URL}
