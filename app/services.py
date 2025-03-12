@@ -3,6 +3,7 @@ import os
 from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
+from .models import User
 
 from flask import jsonify
 import logging
@@ -91,7 +92,3 @@ def get_signed_url_endpoint():
         logger.error(f"Error getting signed URL: {e}")
         return jsonify({'error': 'Failed to get signed URL'}), 500
 
-# Grade the conversation
-def grade_conversation():
-    # Placeholder for grading logic
-    return jsonify({'status': 'success'})
