@@ -3,6 +3,8 @@ import os
 import asyncio
 from flask import Flask
 from flask_socketio import SocketIO
+from dotenv import load_dotenv
+load_dotenv()
 
 from .sockets import init_sockets
 from .routes import init_routes

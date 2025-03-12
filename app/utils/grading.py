@@ -1,8 +1,8 @@
 from typing import List, Dict
 from pydantic import BaseModel, Field
-from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
+from langchain_core.runnables import RunnableSequence
 import os
 
 # Load environment variables
@@ -31,7 +31,7 @@ class GradingResult(BaseModel):
     conversation_id: str
     agent_id: str
     final_score: float
-    individual_scores: Dict[str, int]  # e.g., {"Critical Thinking": 90, "Communication": 85}
+    individual_scores: Dict[str, float]  # e.g., {"Critical Thinking": 90, "Communication": 85}
     performance_summary: Dict[str, List[str]]  # e.g., {"Strengths": [...], "Weaknesses": [...]}
 
 # Initialize Groq LLM
@@ -76,8 +76,8 @@ grading_prompt = PromptTemplate(
     """
 )
 
-# Initialize LLMChain
-grading_chain = LLMChain(llm=groq_llm, prompt=grading_prompt)
+# Create a RunnableSequence
+grading_chain: RunnableSequence = grading_prompt | groq_llm
 
 def grade_conversation(transcript: Transcript) -> GradingResult:
     """
@@ -91,10 +91,10 @@ def grade_conversation(transcript: Transcript) -> GradingResult:
         conversation_text = "\n".join([f"{msg['role']}: {msg['message']}" for msg in transcript.transcript])
 
         # Grade the conversation
-        grading_response = grading_chain.run(transcript=conversation_text)
+        grading_response = grading_chain.invoke({"transcript": conversation_text})
 
         # Parse the grading response (assuming it returns a JSON-like string)
-        grading_data = eval(grading_response)  # Convert JSON string to dictionary
+        grading_data = eval(grading_response.content)  # Convert JSON string to dictionary
 
         # Create a GradingResult object
         grading_result = GradingResult(

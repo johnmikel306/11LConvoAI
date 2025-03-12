@@ -1,6 +1,8 @@
 from datetime import datetime
 from beanie import Document, PydanticObjectId
 from typing import Optional
+from pydantic import BaseModel
+from typing import Dict, List
 
 class User(Document):
     id: PydanticObjectId = None
@@ -36,10 +38,14 @@ class CaseStudy(Document):
     description: str
     agent_id: Optional[str]
     conversation_id: Optional[str]
+    transcript: Optional[List[Dict]]  # Store the transcript here
 
 
 class Grade(Document):
     user: User
     case_study: CaseStudy
-    grade: int
+    final_score: float
+    individual_scores: Dict[str, float]  # e.g., {"Critical Thinking": 90, "Communication": 85}
+    performance_summary: Dict[str, List[str]]  # e.g., {"Strengths": [...], "Weaknesses": [...]}
+    conversation_id: str
 
