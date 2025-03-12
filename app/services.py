@@ -90,3 +90,8 @@ def get_signed_url_endpoint():
     except Exception as e:
         logger.error(f"Error getting signed URL: {e}")
         return jsonify({'error': 'Failed to get signed URL'}), 500
+
+# Grade the conversation
+def grade_conversation():
+    # Placeholder for grading logic
+    return jsonify({'status': 'success'})

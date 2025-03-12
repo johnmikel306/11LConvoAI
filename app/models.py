@@ -1,6 +1,6 @@
-from beanie import Document
+from datetime import datetime
+from beanie import Document, PydanticObjectId
 from typing import Optional
-import datetime
 
 class User(Document):
     id: PydanticObjectId = None
