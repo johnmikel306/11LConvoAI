@@ -13,7 +13,7 @@ def init_routes(app):
         return render_template('index.html')
     
     @app.route('/start', methods=['POST'])
-    @jwt.token_required
+
     def start():
         try:
             logger.info("Start conversation endpoint called")
@@ -23,7 +23,6 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
 
     @app.route('/stop', methods=['POST'])
-    @jwt.token_required
     def stop():
         try:
             logger.info("Stop conversation endpoint called")
@@ -33,7 +32,6 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
 
     @app.route('/transcript', methods=['GET'])
-    @jwt.token_required
     def transcript():
         try:
             logger.info("Transcript endpoint called")
@@ -43,7 +41,6 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
      
     @app.route('/get_signed_url', methods=['GET'])
-    @jwt.token_required
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
@@ -118,7 +115,6 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
 
     @app.route('/grade', methods=['POST'])
-    @jwt.token_required
     def grade():
         """
         Grade the conversation and save the grades to MongoDB.
