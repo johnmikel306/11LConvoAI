@@ -15,7 +15,7 @@ def init_routes(app):
         return render_template('index.html')
     
     @app.route('/start', methods=['POST'])
-    @token_required
+    # @token_required
     def start():
         try:
             logger.info("Start conversation endpoint called")
@@ -25,13 +25,13 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
             
     @app.route('/stop', methods=['POST'])
-    @token_required
-    async def stop(current_user):
+    # @token_required
+    async def stop():
         try:
             logger.info("Stop conversation endpoint called")
 
             # Stop the conversation
-            stop_response = await stop_conversation(current_user)
+            stop_response = await stop_conversation(request.current_user)
             print("Stop response:", stop_response) # Return the response from stop_conversation
 
             # Trigger grading
@@ -49,7 +49,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/transcript', methods=['GET'])
-    @token_required
+    # @token_required
     def transcript():
         try:
             logger.info("Transcript endpoint called")
@@ -62,7 +62,8 @@ def init_routes(app):
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            return get_signed_url()
+            signed_url = get_signed_url()
+            return signed_url
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -133,7 +134,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
-    @token_required
+    # @token_required
     async def grade_conversation_endpoint(conversation_id):
         try:
             logger.info(f"Grading conversation {conversation_id}")

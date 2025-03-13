@@ -59,7 +59,7 @@ def get_signed_url():
         logger.error("AGENT_ID environment variable must be set")
         raise Exception("AGENT_ID environment variable must be set")
     client = ElevenLabs(api_key=API_KEY)
-    signed_url = client.conversational_ai.get_signed_url(AGENT_ID)
+    signed_url = client.conversational_ai.get_signed_url(agent_id=AGENT_ID)
     return signed_url
 
 # API Endpoints
