@@ -1,8 +1,9 @@
 import requests
 from xml.etree import ElementTree as ET
 from flask import url_for
+import os
 
-CAS_SERVICE_VALIDATE_URL = "https://sis.staging.miva.university/cas/serviceValidate"
+CAS_SERVICE_VALIDATE_URL = os.getenv('CAS_SERVICE_VALIDATE_URL')
 
 def validate_service_ticket(ticket, service_url):
     """

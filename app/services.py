@@ -4,6 +4,8 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
 from .models import User
+from datetime import datetime
+from .models import ConversationLog, Grade
 
 from flask import jsonify
 import logging
@@ -72,16 +74,46 @@ def start_conversation():
         logger.error("Error starting conversation: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-def stop_conversation():
-    global conversation
-    if conversation:
-        conversation.end_session()
-        logger.info("Conversation ended")
-        conversation = None
-    return jsonify({'status': 'success'})
+async def stop_conversation():
+    global conversation, chat_history
+    try:
+        if conversation:
+            # Stop the conversation
+            conversation.end_session()
+            logger.info("Conversation ended")
+
+            # Save the conversation transcript to the database
+            conversation_id = conversation._conversation_id
+            await save_conversation_to_db(conversation_id, chat_history)
+
+            # Clear the conversation and chat history
+            conversation = None
+            chat_history = []
+
+            return jsonify({'status': 'success', 'message': 'Conversation stopped and saved.'})
+        else:
+            return jsonify({"status": "error", "message": "No active conversation to stop."}), 400
+    except Exception as e:
+        logger.error(f"Error stopping conversation: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+async def save_conversation_to_db(conversation_id, transcript):
+    """
+    Save the conversation transcript and metadata to MongoDB.
+    """
+    try:
+        conversation_log = ConversationLog(
+            conversation_id=conversation_id,
+            transcript=transcript,
+            timestamp=datetime.utcnow()
+        )
+        await conversation_log.insert()
+        logger.info(f"Conversation {conversation_id} saved to database.")
+    except Exception as e:
+        logger.error(f"Error saving conversation to database: {e}")
+        raise e
 
 def get_transcript():
-    logger.info("Fetching transcript")
     return jsonify({'transcript': chat_history})
 
 def get_signed_url_endpoint():
@@ -92,3 +124,63 @@ def get_signed_url_endpoint():
         logger.error(f"Error getting signed URL: {e}")
         return jsonify({'error': 'Failed to get signed URL'}), 500
 
+async def fetch_conversation_transcript(conversation_id):
+    """
+    Fetch the conversation transcript from the ElevenLabs API using the conversation_id.
+    """
+    try:
+        client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
+        transcript = client.conversational_ai.get_transcript(conversation_id)
+        return transcript
+    except Exception as e:
+        logger.error(f"Error fetching conversation transcript: {e}")
+        raise e
+
+async def grade_conversation(conversation_id):
+    """
+    Grade the conversation using the LLM and save the grade to the database.
+    """
+    try:
+        # Fetch the conversation transcript from ElevenLabs
+        transcript = await fetch_conversation_transcript(conversation_id)
+
+        # Grade the conversation using the LLM
+        grading_result = await grade_with_llm(transcript)
+
+        # Save the grade to the database
+        await save_grade_to_db(conversation_id, grading_result)
+
+        return grading_result
+    except Exception as e:
+        logger.error(f"Error grading conversation: {e}")
+        raise e
+
+async def grade_with_llm(transcript):
+    """
+    Grade the conversation using the LLM (Groq).
+    """
+    try:
+        # Use the existing grading logic from app/utils/grading.py
+        from .utils.grading import grade_conversation as llm_grade_conversation
+        return llm_grade_conversation(transcript)
+    except Exception as e:
+        logger.error(f"Error grading with LLM: {e}")
+        raise e
+
+async def save_grade_to_db(conversation_id, grading_result):
+    """
+    Save the grading result to the database.
+    """
+    try:
+        grade = Grade(
+            conversation_id=conversation_id,
+            final_score=grading_result.final_score,
+            individual_scores=grading_result.individual_scores,
+            performance_summary=grading_result.performance_summary,
+            timestamp=datetime.utcnow()
+        )
+        await grade.insert()
+        logger.info(f"Grade for conversation {conversation_id} saved to database.")
+    except Exception as e:
+        logger.error(f"Error saving grade to database: {e}")
+        raise e

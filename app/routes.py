@@ -4,9 +4,8 @@ from .utils.grading import grade_conversation
 import jwt
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import AGENT_ID, create_user, get_transcript, start_conversation, conversation, get_signed_url_endpoint
+from .services import  create_user, get_transcript, start_conversation, stop_conversation, get_signed_url_endpoint, grade_conversation
 from .utils.logger import logger
-from .models import Grade, CaseStudy
 
 def init_routes(app):
     @app.route('/')
@@ -24,33 +23,24 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
             
     @app.route('/stop', methods=['POST'])
-    def stop():
+    async def stop():
         try:
             logger.info("Stop conversation endpoint called")
 
             # Stop the conversation
-            global conversation
-            if conversation:
-                logger.info("Stopping conversation...")
-                conversation.end_session()
-                conversation_id = conversation._conversation_id
-                logger.info(f"Conversation ended with ID: {conversation_id}")
+            stop_response = await stop_conversation()
+            return stop_response  # Return the response from stop_conversation
 
-                # Return the conversation ID
-                return jsonify({
-                    "status": "success",
-                    "message": "Conversation stopped.",
-                    "conversation_id": conversation_id,
-                })
-            
-                # Grade the conversation
-                logger.info("Grading conversation...")
-                grade_conversation(conversation_id)
-                logger.info("Conversation graded.")
+            # Trigger grading
+            conversation_id = conversation._conversation_id
+            grading_response = await grade_conversation(conversation_id)
 
-            else:
-                logger.warning("No active conversation to stop")
-                return jsonify({"status": "error", "message": "No active conversation to stop."}), 400
+            return jsonify({
+                "status": "success",
+                "message": "Conversation stopped and graded.",
+                "grading_result": grading_response
+            })
+
         except Exception as e:
             logger.error(f"Error in /stop: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -136,5 +126,22 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "No user in session."}), 400
         except Exception as e:
             logger.error(f"Error in /cas/logout: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 500
+        
+    @app.route('/grade/<conversation_id>', methods=['POST'])
+    async def grade_conversation_endpoint(conversation_id):
+        try:
+            logger.info(f"Grading conversation {conversation_id}")
+
+            # Grade the conversation
+            grading_result = await grade_conversation(conversation_id)
+
+            return jsonify({
+                "status": "success",
+                "message": "Conversation graded.",
+                "grading_result": grading_result
+            })
+        except Exception as e:
+            logger.error(f"Error grading conversation: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
 

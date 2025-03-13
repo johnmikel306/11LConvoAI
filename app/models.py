@@ -44,8 +44,16 @@ class CaseStudy(Document):
 class Grade(Document):
     user: User
     case_study: CaseStudy
-    final_score: float
-    individual_scores: Dict[str, float]  # e.g., {"Critical Thinking": 90, "Communication": 85}
+    final_score: int
+    individual_scores: Dict[str, int]  # e.g., {"Critical Thinking": 90, "Communication": 85}
     performance_summary: Dict[str, List[str]]  # e.g., {"Strengths": [...], "Weaknesses": [...]}
     conversation_id: str
+    timestamp: datetime
 
+class ConversationLog(Document):
+    conversation_id: str
+    transcript: list  # List of chat messages
+    timestamp: datetime
+
+    class Meta:
+        collection = "conversation_logs"  # Collection name in MongoDB

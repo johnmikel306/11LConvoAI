@@ -1,9 +1,13 @@
 from typing import List, Dict
+from elevenlabs.client import ElevenLabs
+from elevenlabs.conversational_ai.conversation import Conversation
 from pydantic import BaseModel, Field
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain_core.runnables import RunnableSequence
 import os
+from ..models import Grade, CaseStudy, User
+from ..utils.logger import logger
 
 # Load environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -30,8 +34,8 @@ class Transcript(BaseModel):
 class GradingResult(BaseModel):
     conversation_id: str
     agent_id: str
-    final_score: float
-    individual_scores: Dict[str, float]  # e.g., {"Critical Thinking": 90, "Communication": 85}
+    final_score: int
+    individual_scores: Dict[str, int]  # e.g., {"Critical Thinking": 90, "Communication": 85}
     performance_summary: Dict[str, List[str]]  # e.g., {"Strengths": [...], "Weaknesses": [...]}
 
 # Initialize Groq LLM
@@ -79,22 +83,19 @@ grading_prompt = PromptTemplate(
 # Create a RunnableSequence
 grading_chain: RunnableSequence = grading_prompt | groq_llm
 
-def grade_conversation(transcript: Transcript) -> GradingResult:
+def grade_conversation(transcript):
     """
     Grade a conversation using Groq and LangChain.
     """
     try:
-        # Validate the transcript
-        transcript = Transcript(**transcript)
-
         # Extract the conversation text
-        conversation_text = "\n".join([f"{msg['role']}: {msg['message']}" for msg in transcript.transcript])
+        conversation_text = "\n".join([f"{msg['role']}: {msg['message']}" for msg in transcript])
 
-        # Grade the conversation
-        grading_response = grading_chain.invoke({"transcript": conversation_text})
+        # Grade the conversation using the LLM
+        grading_response = grading_chain.run(transcript=conversation_text)
 
         # Parse the grading response (assuming it returns a JSON-like string)
-        grading_data = eval(grading_response.content)  # Convert JSON string to dictionary
+        grading_data = eval(grading_response)  # Convert JSON string to dictionary
 
         # Create a GradingResult object
         grading_result = GradingResult(
