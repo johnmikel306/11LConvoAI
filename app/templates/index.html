@@ -1,0 +1,307 @@
+<<<<<<< HEAD:templates/index.html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ElevenLabs Conversational AI</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f4f9;
+        color: #333;
+      }
+      h1 {
+        color: #444;
+      }
+      #chat {
+        height: 300px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: scroll;
+        background-color: #fff;
+        margin-bottom: 20px;
+      }
+      .message {
+        margin-bottom: 10px;
+      }
+      .message.user {
+        color: #007bff;
+      }
+      .message.agent {
+        color: #28a745;
+      }
+      button {
+        padding: 10px 20px;
+        margin-right: 10px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ElevenLabs Conversational AI</h1>
+    <div id="chat"></div>
+    <button id="startBtn">Start Conversation</button>
+    <button id="stopBtn" disabled>Stop Conversation</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+      // Connect to the WebSocket server
+      const socket = io();
+
+      // Debugging: Log WebSocket connection status
+      socket.on("connect", () => {
+        console.log("WebSocket connected");
+      });
+
+      socket.on("disconnect", () => {
+        console.log("WebSocket disconnected");
+      });
+
+      const chatDiv = document.getElementById("chat");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+
+      // Function to add a message to the chat
+      function addMessage(sender, message) {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", sender);
+        messageDiv.textContent = `${sender}: ${message}`;
+        chatDiv.appendChild(messageDiv);
+        chatDiv.scrollTop = chatDiv.scrollHeight; // Auto-scroll to the latest message
+      }
+
+      // Listen for new messages from the server
+      socket.on("new_message", (data) => {
+        console.log("New message received:", data);
+        addMessage(data.sender, data.message);
+      });
+
+      // Start conversation
+      startBtn.addEventListener("click", async () => {
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        const response = await fetch("/start", {
+          method: "POST",
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+          addMessage("system", "Conversation started.");
+        } else {
+          addMessage(
+            "system",
+            "Failed to start conversation: " + result.message
+          );
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+      });
+
+      // Stop conversation
+      stopBtn.addEventListener("click", async () => {
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+
+        const response = await fetch("/stop", {
+          method: "POST",
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+          addMessage("system", "Conversation stopped.");
+        } else {
+          addMessage("system", "Failed to stop conversation.");
+          stopBtn.disabled = false;
+          startBtn.disabled = true;
+        }
+      });
+
+      // Fetch transcript on page load
+      window.onload = async () => {
+        const response = await fetch("/transcript");
+        const result = await response.json();
+        result.transcript.forEach((msg) => {
+          addMessage(msg.sender, msg.message);
+        });
+      };
+    </script>
+  </body>
+</html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ElevenLabs Conversational AI</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f4f4f9;
+        color: #333;
+      }
+      h1 {
+        color: #444;
+      }
+      #chat {
+        height: 300px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow-y: scroll;
+        background-color: #fff;
+        margin-bottom: 20px;
+      }
+      .message {
+        margin-bottom: 10px;
+      }
+      .message.user {
+        color: #007bff;
+      }
+      .message.agent {
+        color: #28a745;
+      }
+      .message.system {
+        color: #6c757d;
+      }
+      button {
+        padding: 10px 20px;
+        margin-right: 10px;
+        border: none;
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      #loginBtn {
+        background-color: #28a745;
+      }
+      #logoutBtn {
+        background-color: #dc3545;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ElevenLabs Conversational AI</h1>
+    <div id="userInfo">
+      {% if 'user' in session %}
+        <p>Welcome, <strong>{{ session['user'] }}</strong>!</p>
+        <button id="logoutBtn">Logout</button>
+      {% else %}
+        <button id="loginBtn">Login with CAS</button>
+      {% endif %}
+    </div>
+    <div id="chat"></div>
+    <button id="startBtn">Start Conversation</button>
+    <button id="stopBtn" disabled>Stop Conversation</button>
+    <audio id="audioPlayer" controls style="display:none;"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const audioPlayer = document.getElementById('audioPlayer');
+
+      const chatDiv = document.getElementById("chat");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const loginBtn = document.getElementById("loginBtn");
+      const logoutBtn = document.getElementById("logoutBtn");
+
+      function addMessage(sender, message) {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message", sender);
+        messageDiv.textContent = `${sender}: ${message}`;
+        chatDiv.appendChild(messageDiv);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+      }
+
+      // Handle new messages from the server
+      socket.on("new_message", (data) => {
+        addMessage(data.sender, data.message);
+      });
+
+      // Start Conversation
+      startBtn.addEventListener("click", async () => {
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        const response = await fetch("/start", {
+          method: "POST",
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+          const audioUrl = result.signed_url; // Get the signed URL for audio
+          audioPlayer.src = audioUrl; // Set the audio source
+          audioPlayer.play(); // Play the audio
+          addMessage("system", "Conversation started.");
+        } else {
+          addMessage(
+            "system",
+            "Failed to start conversation: " + result.message
+          );
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+      });
+
+      // Stop Conversation
+      stopBtn.addEventListener("click", async () => {
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+
+        const response = await fetch("/stop", {
+          method: "POST",
+        });
+
+        const result = await response.json();
+        if (result.status === "success") {
+          addMessage("system", "Conversation stopped.");
+        } else {
+          addMessage("system", "Failed to stop conversation.");
+          stopBtn.disabled = false;
+          startBtn.disabled = true;
+        }
+      });
+
+      // Login with CAS
+      if (loginBtn) {
+        loginBtn.addEventListener("click", () => {
+          window.location.href = "/cas/login";
+        });
+      }
+
+      // Logout
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+          window.location.href = "/cas/logout";
+        });
+      }
+
+      // Load transcript on page load
+      window.onload = async () => {
+        const response = await fetch("/transcript");
+        const result = await response.json();
+        result.transcript.forEach((msg) => {
+          addMessage(msg.sender, msg.message);
+        });
+      };
+    </script>
+  </body>
+</html>
+>>>>>>> feature/grading-and-session-management:app/templates/index.html
