@@ -74,7 +74,7 @@ def start_conversation():
         logger.error("Error starting conversation: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-async def stop_conversation():
+async def stop_conversation(current_user):
     global conversation, chat_history
     try:
         if conversation:
@@ -84,7 +84,7 @@ async def stop_conversation():
 
             # Save the conversation transcript to the database
             conversation_id = conversation._conversation_id
-            await save_conversation_to_db(conversation_id, chat_history)
+            await save_conversation_to_db(conversation_id, chat_history, current_user)
 
             # Clear the conversation and chat history
             conversation = None
@@ -97,7 +97,7 @@ async def stop_conversation():
         logger.error(f"Error stopping conversation: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-async def save_conversation_to_db(conversation_id, transcript):
+async def save_conversation_to_db(conversation_id, transcript, current_user):
     """
     Save the conversation transcript and metadata to MongoDB.
     """
@@ -105,6 +105,7 @@ async def save_conversation_to_db(conversation_id, transcript):
         conversation_log = ConversationLog(
             conversation_id=conversation_id,
             transcript=transcript,
+            user_id=current_user,
             timestamp=datetime.utcnow()
         )
         await conversation_log.insert()
@@ -116,13 +117,13 @@ async def save_conversation_to_db(conversation_id, transcript):
 def get_transcript():
     return jsonify({'transcript': chat_history})
 
-def get_signed_url_endpoint():
-    try:
-        signed_url = get_signed_url()
-        return jsonify({'signed_url': signed_url})
-    except Exception as e:
-        logger.error(f"Error getting signed URL: {e}")
-        return jsonify({'error': 'Failed to get signed URL'}), 500
+# def get_signed_url_endpoint():
+#     try:
+#         signed_url = get_signed_url()
+#         return jsonify({'signed_url': signed_url})
+#     except Exception as e:
+#         logger.error(f"Error getting signed URL: {e}")
+#         return jsonify({'error': 'Failed to get signed URL'}), 500
 
 async def fetch_conversation_transcript(conversation_id):
     """
@@ -136,7 +137,7 @@ async def fetch_conversation_transcript(conversation_id):
         logger.error(f"Error fetching conversation transcript: {e}")
         raise e
 
-async def grade_conversation(conversation_id):
+async def grade_conversation(conversation_id, current_user):
     """
     Grade the conversation using the LLM and save the grade to the database.
     """
@@ -148,7 +149,7 @@ async def grade_conversation(conversation_id):
         grading_result = await grade_with_llm(transcript)
 
         # Save the grade to the database
-        await save_grade_to_db(conversation_id, grading_result)
+        await save_grade_to_db(conversation_id, grading_result, current_user)
 
         return grading_result
     except Exception as e:
@@ -167,7 +168,7 @@ async def grade_with_llm(transcript):
         logger.error(f"Error grading with LLM: {e}")
         raise e
 
-async def save_grade_to_db(conversation_id, grading_result):
+async def save_grade_to_db(conversation_id, grading_result, current_user):
     """
     Save the grading result to the database.
     """
@@ -177,6 +178,7 @@ async def save_grade_to_db(conversation_id, grading_result):
             final_score=grading_result.final_score,
             individual_scores=grading_result.individual_scores,
             performance_summary=grading_result.performance_summary,
+            user_id=current_user,
             timestamp=datetime.utcnow()
         )
         await grade.insert()

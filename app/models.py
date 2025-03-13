@@ -40,6 +40,8 @@ class CaseStudy(Document):
     conversation_id: Optional[str]
     transcript: Optional[List[Dict]]  # Store the transcript here
 
+    class Meta:
+        collection = "case_studies"  # Collection name in MongoDB
 
 class Grade(Document):
     user: User
@@ -50,7 +52,11 @@ class Grade(Document):
     conversation_id: str
     timestamp: datetime
 
+    class Meta:
+        collection = "grades"  # Collection name in MongoDB
+
 class ConversationLog(Document):
+    user: User
     conversation_id: str
     transcript: list  # List of chat messages
     timestamp: datetime

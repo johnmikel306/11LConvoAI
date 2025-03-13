@@ -1,10 +1,11 @@
 import datetime
+import jwt
 from flask import jsonify, render_template, redirect, url_for, request, session
 from .utils.grading import grade_conversation
-import jwt
+from .utils.jwt import token_required
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import  create_user, get_transcript, start_conversation, stop_conversation, get_signed_url_endpoint, grade_conversation
+from .services import create_user, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation, conversation
 from .utils.logger import logger
 
 def init_routes(app):
@@ -14,6 +15,7 @@ def init_routes(app):
         return render_template('index.html')
     
     @app.route('/start', methods=['POST'])
+    @token_required
     def start():
         try:
             logger.info("Start conversation endpoint called")
@@ -23,13 +25,14 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
             
     @app.route('/stop', methods=['POST'])
-    async def stop():
+    @token_required
+    async def stop(current_user):
         try:
             logger.info("Stop conversation endpoint called")
 
             # Stop the conversation
-            stop_response = await stop_conversation()
-            return stop_response  # Return the response from stop_conversation
+            stop_response = await stop_conversation(current_user)
+            print("Stop response:", stop_response) # Return the response from stop_conversation
 
             # Trigger grading
             conversation_id = conversation._conversation_id
@@ -46,6 +49,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/transcript', methods=['GET'])
+    @token_required
     def transcript():
         try:
             logger.info("Transcript endpoint called")
@@ -58,7 +62,7 @@ def init_routes(app):
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            return get_signed_url_endpoint()
+            return get_signed_url()
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -129,6 +133,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
+    @token_required
     async def grade_conversation_endpoint(conversation_id):
         try:
             logger.info(f"Grading conversation {conversation_id}")
