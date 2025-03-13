@@ -129,7 +129,7 @@ async def fetch_conversation_transcript(conversation_id):
         logger.error(f"Error fetching conversation transcript: {e}")
         raise e
 
-async def grade_conversation(conversation_id, current_user):
+async def grade_conversation(conversation_id):
     """
     Grade the conversation using the LLM and save the grade to the database.
     """
@@ -141,7 +141,7 @@ async def grade_conversation(conversation_id, current_user):
         grading_result = await grade_with_llm(transcript)
 
         # Save the grade to the database
-        await save_grade_to_db(conversation_id, grading_result, current_user)
+        await save_grade_to_db(conversation_id, grading_result)
 
         return grading_result
     except Exception as e:
