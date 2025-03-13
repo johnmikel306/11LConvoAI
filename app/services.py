@@ -74,7 +74,7 @@ def start_conversation():
         logger.error("Error starting conversation: %s", str(e))
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-async def stop_conversation(current_user):
+async def stop_conversation():
     global conversation, chat_history
     try:
         if conversation:
@@ -84,7 +84,7 @@ async def stop_conversation(current_user):
 
             # Save the conversation transcript to the database
             conversation_id = conversation._conversation_id
-            await save_conversation_to_db(conversation_id, chat_history, current_user)
+            await save_conversation_to_db(conversation_id, chat_history)
 
             # Clear the conversation and chat history
             conversation = None
@@ -116,14 +116,6 @@ async def save_conversation_to_db(conversation_id, transcript, current_user):
 
 def get_transcript():
     return jsonify({'transcript': chat_history})
-
-# def get_signed_url_endpoint():
-#     try:
-#         signed_url = get_signed_url()
-#         return jsonify({'signed_url': signed_url})
-#     except Exception as e:
-#         logger.error(f"Error getting signed URL: {e}")
-#         return jsonify({'error': 'Failed to get signed URL'}), 500
 
 async def fetch_conversation_transcript(conversation_id):
     """

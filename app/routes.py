@@ -26,22 +26,33 @@ def init_routes(app):
             
     @app.route('/stop', methods=['POST'])
     # @token_required
-    async def stop():
+    def stop():
         try:
             logger.info("Stop conversation endpoint called")
+            
+            # Check if there's an active conversation
+            if not conversation or not conversation._conversation_id:
+                return jsonify({
+                    "status": "error",
+                    "message": "No active conversation to stop"
+                }), 400
 
-            # Stop the conversation
-            stop_response = await stop_conversation(request.current_user)
-            print("Stop response:", stop_response) # Return the response from stop_conversation
-
-            # Trigger grading
+            # Get conversation ID before stopping
             conversation_id = conversation._conversation_id
-            grading_response = await grade_conversation(conversation_id)
+            
+            # Stop the conversation
+            stop_conversation()
+            logger.info(f"Conversation {conversation_id} stopped")
+
+            # Grade the conversation
+            grading_result = grade_conversation(conversation_id)
+            logger.info(f"Conversation {conversation_id} graded")
 
             return jsonify({
                 "status": "success",
-                "message": "Conversation stopped and graded.",
-                "grading_result": grading_response
+                "message": "Conversation stopped and graded",
+                "conversation_id": conversation_id,
+                "grading_result": grading_result
             })
 
         except Exception as e:
