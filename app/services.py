@@ -123,7 +123,7 @@ async def fetch_conversation_transcript(conversation_id):
     """
     try:
         client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
-        transcript = client.conversational_ai.get_transcript(conversation_id)
+        transcript = client.conversational_ai.get_conversation["transcript"](conversation_id)
         return transcript
     except Exception as e:
         logger.error(f"Error fetching conversation transcript: {e}")
