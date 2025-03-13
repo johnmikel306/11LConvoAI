@@ -63,3 +63,36 @@ class ConversationLog(Document):
 
     class Meta:
         collection = "conversation_logs"  # Collection name in MongoDB
+
+
+
+class Session(Document):
+    user_email: str
+    conversation_id: Optional[str]
+    is_active: bool = True
+    start_time: datetime = datetime.utcnow()
+    end_time: Optional[datetime] = None
+    transcript: Optional[List[Dict]] = []
+
+    class Meta:
+        collection = "sessions"  # Collection name in MongoDB
+
+    @classmethod
+    async def find_active_by_email(cls, email: str) -> Optional["Session"]:
+        """
+        Find an active session for a user by email.
+        """
+        return await cls.find_one({cls.user_email == email, cls.is_active == True})
+    
+    @classmethod
+    async def end_session(cls, session_id: PydanticObjectId):
+        """
+        End a session by setting is_active to False and updating end_time.
+        """
+        session = await cls.get(session_id)
+        if session:
+            session.is_active = False
+            session.end_time = datetime.utcnow()
+            await session.save()
+            return session
+        return None

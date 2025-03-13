@@ -17,6 +17,7 @@ def init_app():
   # Set the secret key
   app.secret_key = os.getenv("SECRET_KEY")
   if not app.secret_key:
+   
       raise ValueError("SECRET_KEY environment variable is required for session management.")
 
   # Initialize SocketIO
