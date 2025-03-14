@@ -118,7 +118,7 @@ def init_routes(app):
                     'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
                 }, os.getenv('JWT_SECRET'))   
 
-                return jsonify({'token': token.decode('UTF-8')})
+                return jsonify({'token': token })
 
             else:
                 logger.error("Failed to validate CAS ticket.")
