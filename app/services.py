@@ -4,7 +4,7 @@ from elevenlabs.client import ElevenLabs
 from elevenlabs.conversational_ai.conversation import Conversation
 from elevenlabs.conversational_ai.default_audio_interface import DefaultAudioInterface
 from .models import User
-from datetime import datetime
+from datetime import datetime, timezone
 from .models import ConversationLog, Grade
 
 from flask import jsonify
@@ -106,7 +106,7 @@ async def save_conversation_to_db(conversation_id, transcript, current_user):
             conversation_id=conversation_id,
             transcript=transcript,
             user_id=current_user,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         await conversation_log.insert()
         logger.info(f"Conversation {conversation_id} saved to database.")
@@ -171,7 +171,7 @@ async def save_grade_to_db(conversation_id, grading_result, current_user):
             individual_scores=grading_result.individual_scores,
             performance_summary=grading_result.performance_summary,
             user_id=current_user,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         await grade.insert()
         logger.info(f"Grade for conversation {conversation_id} saved to database.")

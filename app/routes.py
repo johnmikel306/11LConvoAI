@@ -115,7 +115,7 @@ def init_routes(app):
 
                 token = jwt.encode({
                     'email': user_email,
-                    'exp' : datetime.utcnow() + datetime.timedelta(days=7)
+                    'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
                 }, os.getenv('JWT_SECRET'))   
 
                 return jsonify({'token': token.decode('UTF-8')})
