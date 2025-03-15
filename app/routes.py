@@ -70,7 +70,8 @@ def init_routes(app):
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            return get_signed_url()
+            url = get_signed_url()
+            return jsonify({'signed_url': url})
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -80,7 +81,7 @@ def init_routes(app):
     def cas_login():
         try:
             # Redirect to CAS login page
-            service_url = url_for('cas_validate', _external=True)
+            service_url = "https://miva-mind.vercel.app/auth/cas/callback"
             cas_login_url = f"{os.getenv('CAS_LOGIN_URL')}?service={service_url}"
             logger.info(f"Redirecting to CAS login: {cas_login_url}")
             return jsonify({'url': cas_login_url})
@@ -98,7 +99,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "No ticket provided."}), 400
 
             # Validate the Service Ticket
-            service_url = url_for('cas_validate', _external=True)
+            service_url = "https://miva-mind.vercel.app/auth/cas/callback"
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
@@ -117,10 +118,11 @@ def init_routes(app):
                 # Create JWT token
                 token = jwt.encode({
                     'email': user_email,
-                    'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
+                    'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
                 }, os.getenv('JWT_SECRET'))   
 
-                return jsonify({'token': token})
+                return jsonify({'token': token })
+
             else:
                 logger.error("Failed to validate CAS ticket.")
                 return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
