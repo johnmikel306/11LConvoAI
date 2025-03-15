@@ -106,7 +106,7 @@ async def start_conversation():
             user_email=user_email,
             conversation_id=conv_id,
             is_active=True,
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
             transcript=[]
         )
         await new_session.insert()
