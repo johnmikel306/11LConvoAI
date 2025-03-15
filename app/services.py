@@ -1,3 +1,5 @@
+# from app.services import get_transcript
+import json
 from .models import CaseStudy, ConversationLog, User, Session, Grade
 import os
 from elevenlabs.client import ElevenLabs
@@ -21,12 +23,12 @@ conversation = None
 chat_history = []
 
 # Store chat messages
-async def store_message(sender, message):
+def store_message(sender, message):
     chat_history.append({'sender': sender, 'message': message})
     # Update the current session with the latest message
     if g.get('current_session'):
         g.current_session.transcript = chat_history
-        await g.current_session.save()
+        g.current_session.save()
 
 # Initialize conversation
 def initialize_conversation():
@@ -56,16 +58,16 @@ def get_signed_url():
     return jsonify({"status": "success", "signed_url": signed_url.signed_url})
 
 # Create user function
-async def create_user(email):
+def create_user(email):
     user = User(email=email, name="", role="student", date_added=datetime.utcnow(), date_updated=datetime.utcnow())
-    await user.save_to_db()
+    user.save_to_db()
     return user
 
-async def get_user_by_email(email):
-    return await User.find_by_email(email)
+def get_user_by_email(email):
+    return User.find_by_email(email)
 
 # API Endpoints
-async def start_conversation():
+def start_conversation():
     global conversation, chat_history
     try:
         # Check for JWT token to get current user
@@ -88,14 +90,14 @@ async def start_conversation():
         chat_history = []
         
         # Create and store a new session in the database
-        user = await get_user_by_email(user_email)
+        user = get_user_by_email(user_email)
         if not user:
-            user = await create_user(user_email)
+            user = create_user(user_email)
             
         # End any existing active sessions for this user
-        active_session = await Session.find_active_by_email(user_email)
+        active_session = Session.find_active_by_email(user_email)
         if active_session:
-            await Session.end_session(active_session.id)
+            Session.end_session(active_session.id)
         
         # Create a new session
         new_session = Session(
@@ -105,7 +107,7 @@ async def start_conversation():
             start_time=datetime.utcnow(),
             transcript=[]
         )
-        await new_session.insert()
+        new_session.insert()
         
         # Store the session in g for this request context
         g.current_session = new_session
@@ -116,7 +118,7 @@ async def start_conversation():
         logger.error(f"Error starting conversation: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-async def stop_conversation():
+def stop_conversation():
     global conversation, chat_history
     try:
         if conversation:
@@ -136,18 +138,18 @@ async def stop_conversation():
             logger.info(f"Conversation {conversation_id} ended")
             
             # Find and update the active session
-            session = await Session.find_active_by_email(user_email)
+            session = Session.find_active_by_email(user_email)
             if session:
                 # Update the transcript one last time
                 session.transcript = chat_history
                 # End the session
-                await Session.end_session(session.id)
+                Session.end_session(session.id)
                 
                 # Save conversation to ConversationLog for historical record
-                await save_conversation_to_db(conversation_id, chat_history, user_email)
+                save_conversation_to_db(conversation_id, chat_history, user_email)
                 
                 # Grade the conversation
-                grading_result = await grade_conversation(conversation_id, user_email)
+                grading_result = grade_conversation(conversation_id, user_email)
                 
                 # Clear the globals
                 conversation = None
@@ -167,15 +169,15 @@ async def stop_conversation():
         logger.error(f"Error stopping conversation: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-async def save_conversation_to_db(conversation_id, transcript, user_email):
+def save_conversation_to_db(conversation_id, transcript, user_email):
     """
     Save the conversation transcript and metadata to MongoDB.
     """
     try:
         # Find the user
-        user = await User.find_by_email(user_email)
+        user = User.find_by_email(user_email)
         if not user:
-            user = await create_user(user_email)
+            user = create_user(user_email)
         
         conversation_log = ConversationLog(
             user=user,
@@ -183,7 +185,7 @@ async def save_conversation_to_db(conversation_id, transcript, user_email):
             transcript=transcript,
             timestamp=datetime.utcnow()
         )
-        await conversation_log.insert()
+        conversation_log.insert()
         logger.info(f"Conversation {conversation_id} saved to database for user {user_email}.")
     except Exception as e:
         logger.error(f"Error saving conversation to database: {e}")
@@ -192,72 +194,66 @@ async def save_conversation_to_db(conversation_id, transcript, user_email):
 def get_transcript():
     return jsonify({'transcript': chat_history})
 
-async def fetch_conversation_transcript(conversation_id):
+def fetch_conversation_transcript(conversation_id):
     """
     Fetch the conversation transcript from the database or ElevenLabs API.
     """
-    try:
-        # First try to get from our database
-        conversation_log = await ConversationLog.find_one(
-            ConversationLog.conversation_id == conversation_id
-        )
+  
+    client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
+    transcript = client.conversational_ai.get_conversation(conversation_id).transcript
+    trans = []
+    for t in transcript:
+        trans.append({"role": t.role, "message": t.message})
+      
         
-        if conversation_log and conversation_log.transcript:
-            return conversation_log.transcript
-        
-        # If not found in DB, fetch from ElevenLabs API
-        client = ElevenLabs(api_key=os.getenv('ELEVENLABS_API_KEY'))
-        transcript = client.conversational_ai.get_conversation_transcript(conversation_id)
-        return transcript
-    except Exception as e:
-        logger.error(f"Error fetching conversation transcript: {e}")
-        raise e
+   
+    return str(trans)
+   
 
-async def grade_conversation(conversation_id, user_email):
+def grade_conversation(conversation_id, user_email):
     """
     Grade the conversation using the LLM and save the grade to the database.
     """
-    try:
-        # Fetch the conversation transcript
-        transcript = await fetch_conversation_transcript(conversation_id)
-        
-        # Get the user
-        user = await User.find_by_email(user_email)
-        if not user:
-            raise Exception(f"User not found: {user_email}")
-            
-        # Grade the conversation using the LLM
-        from .utils.grading import grade_conversation as llm_grade_conversation
-        grading_result = llm_grade_conversation(transcript)
-        
-        # Save the grade to the database
-        await save_grade_to_db(conversation_id, grading_result, user)
-        
-        return grading_result
-    except Exception as e:
-        logger.error(f"Error grading conversation: {e}")
-        raise e
+    # try:
+    # Fetch the conversation transcript
+    transcript = fetch_conversation_transcript(conversation_id)
+    
+    
+    # Grade the conversation using the LLM
+    from .utils.grading import grade_conversation as llm_grade_conversation
+    grading_result = llm_grade_conversation(transcript, conversation_id)
+    
+    # Save the grade to the database
+    save_grade_to_db(conversation_id, grading_result, user_email)
+    
+    return grading_result
+    # except Exception as e:
+    #     logger.error(f"Error grading conversation: {e}")
+    #     raise e
 
-async def save_grade_to_db(conversation_id, grading_result, user):
+async def save_grade_to_db(conversation_id, grading_result, user_email):
     """
     Save the grading result to the database.
     """
     try:
         # Find the case study if it exists (optional)
         case_study = await CaseStudy.find_one(CaseStudy.conversation_id == conversation_id)
-        
+
+        # Get the user object
+        user = await User.find_by_email(user_email)  # Assuming this is where the user coroutine came from
+
         grade = Grade(
             user=user,
-            case_study=case_study if case_study else None,
+            case_study=case_study,  # No need for the conditional here, None is fine
             final_score=grading_result.final_score,
             individual_scores=grading_result.individual_scores,
             performance_summary=grading_result.performance_summary,
             conversation_id=conversation_id,
             timestamp=datetime.utcnow()
         )
-        await grade.insert()
+        grade.insert()
         logger.info(f"Grade for conversation {conversation_id} saved to database for user {user.email}.")
-        return grade
+       
     except Exception as e:
         logger.error(f"Error saving grade to database: {e}")
         raise e
