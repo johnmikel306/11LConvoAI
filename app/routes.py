@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import json
 import jwt
@@ -52,8 +51,7 @@ def init_routes(app):
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            url = get_signed_url()
-            return url
+            return get_signed_url()
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -87,9 +85,9 @@ def init_routes(app):
             if user_email:
                 # Save the user to DB
                 try:
-                    await create_user(user_email)
+                    user = await create_user(user_email)
                 except Exception as e:
-                    logger.error("Failed to create user: %", str(e), exc_info=True)
+                    logger.error(f"Failed to create user: {e}")
                     return jsonify({"status": "error", "message": "Failed to create user."}), 500
 
                 # End any active sessions for this user
