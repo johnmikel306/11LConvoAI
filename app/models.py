@@ -20,7 +20,7 @@ class User(Document):
         """
         Find a user by email in the database.
         """
-        return await cls.find_one({cls.email == email})
+        return await cls.find_one({"email": email})
     
     async def save_to_db(self):
         """
@@ -78,7 +78,7 @@ class Session(Document):
         """
         Find an active session for a user by email.
         """
-        return await cls.find_one({cls.user_email == email, cls.is_active == True})
+        return await cls.find_one({"user_email": email, "is_active": True})
     
     @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
@@ -88,7 +88,7 @@ class Session(Document):
         session = await cls.get(session_id)
         if session:
             session.is_active = False
-            session.end_time = datetime.utcnow()
+            session.end_time = datetime.now(datetime.timezone.utc)
             await session.save()
             return session
         return None
