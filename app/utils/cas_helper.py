@@ -5,7 +5,7 @@ from xml.etree import ElementTree as ET
 from flask import url_for
 import os
 
-from app.utils import logger
+from ..utils.logger import logger
 
 CAS_SERVICE_VALIDATE_URL = os.getenv('CAS_SERVICE_VALIDATE_URL')
 
@@ -20,7 +20,7 @@ def validate_service_ticket(ticket, service_url):
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
-    print(response.text)
+    logger.info(response.text)
 
     if response.status_code == 200 and params['format'] == 'xml':
         # Parse the XML response
@@ -31,10 +31,10 @@ def validate_service_ticket(ticket, service_url):
         if user_element is not None:
             return user_element.text  # Return the user's email
         
-    # handle JSON response
-    elif response.status_code == 200 and params['format'] == 'json':
-        data = response.json()
-        print(data)
-        if data['serviceResponse']['authenticationSuccess']:
-            return data['serviceResponse']['authenticationSuccess']['user']
+    # # handle JSON response
+    # elif response.status_code == 200 and params['format'] == 'json':
+    #     data = response.json()
+    #     logger.log(data)
+    #     if data['serviceResponse']['authenticationSuccess']:
+    #         return data['serviceResponse']['authenticationSuccess']['user']
     return None  # Return None if validation fails
