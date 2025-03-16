@@ -26,10 +26,6 @@ class User(Document):
         """
         Save the user to the database.
         """
-        existing_user = await User.find_by_email(self.email)
-        if existing_user:
-            return None # User already exists
-        
         await self.insert()
         return self
     

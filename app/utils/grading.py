@@ -146,5 +146,5 @@ def grade_conversation(transcript_data, conversation_id):
 
     return grading_result
     # except Exception as e:
-    #     logger.error(f"Error in grade_conversation: {e}")
-    #     raise Exception(f"Error grading conversation: {e}")
+    #     logger.error(f"Error in grade_conversation: {str(e)}")
+    #     raise Exception(f"Error grading conversation: {str(e)}")

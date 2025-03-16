@@ -63,6 +63,9 @@ def get_signed_url():
 
 # Create user function
 async def create_user(email):
+    existing_user = await User.find_by_email(email)
+    if existing_user:
+        return existing_user
     user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
     await user.save_to_db()
     return user
@@ -170,7 +173,7 @@ def stop_conversation():
         else:
             return jsonify({"status": "error", "message": "No active conversation to stop."}), 400
     except Exception as e:
-        logger.error(f"Error stopping conversation: {e}")
+        logger.error(f"Error stopping conversation: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 def save_conversation_to_db(conversation_id, transcript, user_email):
@@ -193,7 +196,7 @@ def save_conversation_to_db(conversation_id, transcript, user_email):
         conversation_log.insert()
         logger.info(f"Conversation {conversation_id} saved to database for user {user_email}.")
     except Exception as e:
-        logger.error(f"Error saving conversation to database: {e}")
+        logger.error(f"Error saving conversation to database: {str(e)}")
         raise e
 
 def get_transcript():
@@ -233,7 +236,7 @@ def grade_conversation(conversation_id, user_email):
     
     return grading_result
     # except Exception as e:
-    #     logger.error(f"Error grading conversation: {e}")
+    #     logger.error(f"Error grading conversation: {str(e)}")
     #     raise e
 
 async def save_grade_to_db(conversation_id, grading_result, user_email):
@@ -260,7 +263,7 @@ async def save_grade_to_db(conversation_id, grading_result, user_email):
         logger.info(f"Grade for conversation {conversation_id} saved to database for user {user.email}.")
        
     except Exception as e:
-        logger.error(f"Error saving grade to database: {e}")
+        logger.error(f"Error saving grade to database: {str(e)}")
         raise e
 
 # Helper function to extract email from JWT token
@@ -275,5 +278,5 @@ def extract_email_from_token(token):
         decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
         return decoded.get('email')
     except Exception as e:
-        logger.error(f"Error extracting email from token: {e}")
+        logger.error(f"Error extracting email from token: {str(e)}")
         return "test@example.com"  # Fallback for development

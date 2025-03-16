@@ -26,7 +26,7 @@ def init_routes(app):
                 active_session = Session.find_active_by_email(user_email)
                 g.current_session = active_session
             except Exception as e:
-                logger.error(f"Error loading session: {e}")
+                logger.error(f"Error loading session: {str(e)}")
                 g.current_session = None
         else:
             g.current_session = None
@@ -44,7 +44,7 @@ def init_routes(app):
             logger.info("Transcript endpoint called")
             return get_transcript()
         except Exception as e:
-            logger.error(f"Error in /transcript: {e}")
+            logger.error(f"Error in /transcript: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
      
     @app.route('/get_signed_url', methods=['GET'])
@@ -53,7 +53,7 @@ def init_routes(app):
             logger.info("Get signed URL endpoint called")
             return get_signed_url()
         except Exception as e:
-            logger.error(f"Error in /get_signed_url: {e}")
+            logger.error(f"Error in /get_signed_url: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
 
     # CAS Login Route
@@ -66,7 +66,7 @@ def init_routes(app):
             logger.info(f"Redirecting to CAS login: {cas_login_url}")
             return jsonify({'url': cas_login_url})
         except Exception as e:
-            logger.error(f"Error in /cas/auth-url: {e}")
+            logger.error(f"Error in /cas/auth-url: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
         # CAS Validation Route (continued)
     @app.route('/cas/validate', methods=['POST'])
@@ -87,7 +87,7 @@ def init_routes(app):
                 try:
                     user = await create_user(user_email)
                 except Exception as e:
-                    logger.error(f"Failed to create user: {e}")
+                    logger.error(f"Failed to create user: {str(e)}")
                     return jsonify({"status": "error", "message": "Failed to create user."}), 500
 
                 # End any active sessions for this user
@@ -107,7 +107,7 @@ def init_routes(app):
                 logger.error("Failed to validate CAS ticket.")
                 return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
         except Exception as e:
-            logger.error(f"Error in /cas/validate: {e}")
+            logger.error(f"Error in /cas/validate: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
 
     # CAS Logout Route
@@ -135,7 +135,7 @@ def init_routes(app):
                 logger.info("No user in session.")
                 return jsonify({"status": "error", "message": "No user in session."}), 400
         except Exception as e:
-            logger.error(f"Error in /cas/logout: {e}")
+            logger.error(f"Error in /cas/logout: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
@@ -162,7 +162,7 @@ def init_routes(app):
                 "grading_result": json.dumps(grading_result.model_dump_json())
             })
         except Exception as e:
-            logger.error(f"Error grading conversation: {e}")
+            logger.error(f"Error grading conversation: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
             
     # New endpoint to get user's sessions
@@ -202,7 +202,7 @@ def init_routes(app):
                 "sessions": formatted_sessions
             })
         except Exception as e:
-            logger.error(f"Error getting user sessions: {e}")
+            logger.error(f"Error getting user sessions: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
             
     # New endpoint to get grades for a user
@@ -247,5 +247,5 @@ def init_routes(app):
                 "grades": formatted_grades
             })
         except Exception as e:
-            logger.error(f"Error getting user grades: {e}")
+            logger.error(f"Error getting user grades: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500

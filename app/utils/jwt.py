@@ -39,7 +39,7 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return jsonify({'message': 'Token is invalid!'}), 401
         except Exception as e:
-            logger.error(f"An error occur validating the token : {e}")
+            logger.error(f"An error occur validating the token : {str(e)}")
             return jsonify({
                 'message': 'Token is invalid!'
             }), 401
