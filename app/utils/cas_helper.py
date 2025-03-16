@@ -19,6 +19,8 @@ def validate_service_ticket(ticket, service_url):
         'format': 'json',
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
+    
+    logger.info(response.text)
 
     if response.status_code == 200 and params['format'] == 'xml':
         # Parse the XML response
