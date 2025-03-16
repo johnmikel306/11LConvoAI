@@ -16,13 +16,13 @@ async def setup_db():
 
   # Configure MongoDB using Beanie
   dbURI = os.getenv("MONGO_URI")
-  dbURI = "mongodb://localhost:27017/ailp-dev" if (dbURI is None) else dbURI
+  # dbURI = "mongodb://localhost:27017/ailp-dev" if (dbURI is None) else dbURI
   
   # Beanie uses Motor async client under the hood 
   client = AsyncIOMotorClient(dbURI)
 
   # Initialize beanie with the database and document models
-  await init_beanie(database=client.db_name, document_models=[User, CaseStudy, Grade])
+  await init_beanie(database=client.ailp, document_models=[User, CaseStudy, Grade])
   
   print(f"Database is running at: {dbURI}")
   
