@@ -20,7 +20,7 @@ def validate_service_ticket(ticket, service_url):
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
-    logger.info(response.text)
+    print(response.text)
 
     if response.status_code == 200 and params['format'] == 'xml':
         # Parse the XML response
@@ -34,7 +34,7 @@ def validate_service_ticket(ticket, service_url):
     # handle JSON response
     elif response.status_code == 200 and params['format'] == 'json':
         data = response.json()
-        logger.info(data)
+        print(data)
         if data['serviceResponse']['authenticationSuccess']:
             return data['serviceResponse']['authenticationSuccess']['user']
     return None  # Return None if validation fails
