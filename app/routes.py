@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import jwt
@@ -71,7 +72,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         # CAS Validation Route (continued)
     @app.route('/cas/validate', methods=['POST'])
-    def cas_validate():
+    async def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
@@ -86,15 +87,15 @@ def init_routes(app):
             if user_email:
                 # Save the user to DB
                 try:
-                    user = create_user(user_email)
+                    await create_user(user_email)
                 except Exception as e:
                     logger.error(f"Failed to create user: {e}")
                     return jsonify({"status": "error", "message": "Failed to create user."}), 500
 
                 # End any active sessions for this user
-                active_session = Session.find_active_by_email(user_email)
+                active_session = await Session.find_active_by_email(user_email)
                 if active_session:
-                    Session.end_session(active_session.id)
+                    await Session.end_session(active_session.id)
 
                 # Create JWT token
                 token = jwt.encode({

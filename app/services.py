@@ -62,9 +62,9 @@ def get_signed_url():
     return jsonify({"status": "success", "signed_url": signed_url.signed_url})
 
 # Create user function
-def create_user(email):
+async def create_user(email):
     user = User(email=email, name="", role="student", date_added=datetime.utcnow(), date_updated=datetime.utcnow())
-    user.save_to_db()
+    await user.save_to_db()
     return user
 
 def get_user_by_email(email):
