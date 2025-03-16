@@ -77,12 +77,12 @@ async def create_user(email):
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}")
         raise e
-
+    
 def get_user_by_email(email):
     return User.find_by_email(email)
 
 # API Endpoints
-def start_conversation():
+async def start_conversation():
     global conversation, chat_history
     try:
         # Check for JWT token to get current user
@@ -107,7 +107,7 @@ def start_conversation():
         # Create and store a new session in the database
         user = get_user_by_email(user_email)
         if not user:
-            user = create_user(user_email)
+            user = await create_user(user_email)
             
         # End any existing active sessions for this user
         active_session = Session.find_active_by_email(user_email)
@@ -184,7 +184,7 @@ def stop_conversation():
         logger.error(f"Error stopping conversation: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
-def save_conversation_to_db(conversation_id, transcript, user_email):
+async def save_conversation_to_db(conversation_id, transcript, user_email):
     """
     Save the conversation transcript and metadata to MongoDB.
     """
@@ -192,7 +192,7 @@ def save_conversation_to_db(conversation_id, transcript, user_email):
         # Find the user
         user = User.find_by_email(user_email)
         if not user:
-            user = create_user(user_email)
+            user = await create_user(user_email)
         
         conversation_log = ConversationLog(
             user=user,

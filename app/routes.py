@@ -77,7 +77,7 @@ def init_routes(app):
             if not ticket:
                 logger.error("Invalid request: No ticket provided.")
                 return jsonify({"status": "error", "message": "No ticket provided."}), 400
-            print(ticket)
+
             # Validate the Service Ticket
             service_url = "https://miva-mind.vercel.app/auth/cas/callback"
             user_email = validate_service_ticket(ticket, service_url)
