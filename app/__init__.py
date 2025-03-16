@@ -28,8 +28,14 @@ def init_app():
 
 (app, socketio) = init_app()
 
-# Init DB
-asyncio.run(setup_db())
+# Initialize the database connection
+def setup_async_db():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(setup_db())
+    loop.close()
+
+setup_async_db()
 
 # Initialize routes
 init_routes(app)
