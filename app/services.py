@@ -63,7 +63,7 @@ def get_signed_url():
 
 # Create user function
 async def create_user(email):
-    user = User(email=email, name="", role="student", date_added=datetime.utcnow(), date_updated=datetime.utcnow())
+    user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
     await user.save_to_db()
     return user
 

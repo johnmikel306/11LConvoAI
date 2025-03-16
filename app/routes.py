@@ -89,7 +89,7 @@ def init_routes(app):
                 try:
                     await create_user(user_email)
                 except Exception as e:
-                    logger.error(f"Failed to create user: {e}")
+                    logger.error("Failed to create user: {e}")
                     return jsonify({"status": "error", "message": "Failed to create user."}), 500
 
                 # End any active sessions for this user
