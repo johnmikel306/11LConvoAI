@@ -15,6 +15,7 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 def setup_logger():
+    # Create a logger
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -27,4 +28,5 @@ def setup_logger():
 
     return logger
 
+# Initialize the logger
 logger = setup_logger()
