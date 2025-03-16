@@ -16,25 +16,22 @@ def validate_service_ticket(ticket, service_url):
     params = {
         'ticket': ticket,
         'service': service_url,
-        'format': 'json',
+        'format': 'json',  # Ensure this matches your CAS server's expected format
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
-    logger.info(response.text)
+    logger.info(f"CAS Validation Response: {response.text}")
 
-    if response.status_code == 200 and params['format'] == 'xml':
-        # Parse the XML response
-        root = ET.fromstring(response.text)
-        namespace = {'cas': 'http://www.yale.edu/tp/cas'}
-        user_element = root.find('.//cas:authenticationSuccess/cas:user', namespace)
-
-        if user_element is not None:
-            return user_element.text  # Return the user's email
-        
-    # # handle JSON response
-    # elif response.status_code == 200 and params['format'] == 'json':
-    #     data = response.json()
-    #     logger.log(data)
-    #     if data['serviceResponse']['authenticationSuccess']:
-    #         return data['serviceResponse']['authenticationSuccess']['user']
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            if data.get('serviceResponse', {}).get('authenticationSuccess'):
+                return data['serviceResponse']['authenticationSuccess']['user']
+        except ValueError:
+            # Fallback to XML parsing if JSON parsing fails
+            root = ET.fromstring(response.text)
+            namespace = {'cas': 'http://www.yale.edu/tp/cas'}
+            user_element = root.find('.//cas:authenticationSuccess/cas:user', namespace)
+            if user_element is not None:
+                return user_element.text  # Return the user's email
     return None  # Return None if validation fails
