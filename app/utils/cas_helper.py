@@ -16,6 +16,8 @@ def validate_service_ticket(ticket, service_url):
         'service': service_url,
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
+    
+    print(response.text)
 
     if response.status_code == 200:
         # Parse the XML response
