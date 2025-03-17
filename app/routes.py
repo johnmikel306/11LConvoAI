@@ -72,7 +72,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/cas/validate', methods=['POST'])
-    def cas_validate():
+    async def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
@@ -86,20 +86,40 @@ def init_routes(app):
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
-                # Create JWT token without saving user
-                token = jwt.encode({
-                    'email': user_email,
-                    'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
-                }, os.getenv('JWT_SECRET'))   
-
-                return jsonify({'token': token})
+                try:
+                    # Create user if not exists
+                    user = await create_user(user_email)
+                    
+                    # End any active sessions for this user
+                    active_session = await Session.find_active_by_email(user_email)
+                    if active_session:
+                        await Session.close_session(active_session.id)
+                    
+                    # Create new session
+                    new_session = Session(
+                        user_email=user_email,
+                        is_active=True,
+                        start_time=datetime.datetime.now(datetime.timezone.utc),
+                        transcript=[]
+                    )
+                    await new_session.insert()
+                    
+                    # Generate JWT token
+                    token = jwt.encode({
+                        'email': user_email,
+                        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+                    }, os.getenv('JWT_SECRET'))
+                    
+                    return jsonify({'token': token})
+                except Exception as e:
+                    logger.error(f"Error processing user: {str(e)}")
+                    return jsonify({"status": "error", "message": "Error processing user"}), 500
             else:
-                # logger.error("Failed to validate CAS ticket.")
+                logger.error("Failed to validate CAS ticket.")
                 return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
         except Exception as e:
-            # logger.error(f"Error in /cas/validate: {str(e)}")
+            logger.error(f"Error in /cas/validate: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
-
     # CAS Logout Route
     @app.route('/cas/logout')
     def cas_logout():
