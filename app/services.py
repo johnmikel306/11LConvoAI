@@ -63,20 +63,25 @@ def get_signed_url():
 # Create user function
 async def create_user(email):
     try:
-        logger.info(f"Attempting to create user with email: {email}")
-        existing_user = await User.find_by_email(email)
+        logger.info(f"Attempting to create user with email: {str(email)}")  # Ensure email is a string
+        existing_user = await User.find_by_email(str(email))  # Ensure email is a string
 
         if existing_user:
-            logger.info(f"User with email {email} already exists.")
+            logger.info(f"User with email {str(email)} already exists.")  # Ensure email is a string
             return existing_user
 
-        user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
-        await user.save_to_db()
-
-        logger.info(f"User with email {email} created successfully.")
+        user = User(
+            email=str(email),  # Ensure email is a string
+            name=str(email.split('@')[0]),  # Extract name from email and return as string
+            role="student",
+            date_added=datetime.now(timezone.utc),
+            date_updated=datetime.now(timezone.utc)
+        )
+        await user.insert()  # Directly use insert instead of save_to_db
+        logger.info(f"User with email {str(email)} created successfully.")  # Ensure email is a string
         return user
     except Exception as e:
-        logger.error(f"Error creating user: {str(e)}")
+        logger.error(f"Error creating user {email}: {str(e)}", exc_info=True)
         raise e
     
 def create_user_sync(email):
