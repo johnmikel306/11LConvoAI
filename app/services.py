@@ -67,14 +67,14 @@ def create_user(email):
 
     try:
         logger.info(f"Attempting to create user with email: {email}")
-        existing_user = User.find_by_email(email)
+        existing_user = asyncio.run(User.find_by_email(email))
 
         if existing_user:
             logger.info(f"User with email {email} already exists.")
             return existing_user
 
         user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
-        user.save_to_db()
+        asyncio.run(user.save_to_db())
 
         logger.info(f"User with email {email} created successfully.")
         return user
@@ -109,14 +109,14 @@ async def start_conversation():
         chat_history = []
         
         # Create and store a new session in the database
-        user = get_user_by_email(user_email)
+        user = asyncio.run(get_user_by_email(user_email))
         if not user:
-            user = await create_user(user_email)
+            user = asyncio.run(create_user(user_email))
             
         # End any existing active sessions for this user
-        active_session = Session.find_active_by_email(user_email)
+        active_session = asyncio.run(Session.find_active_by_email(user_email))
         if active_session:
-            Session.end_session(active_session.id)
+            asyncio.run(Session.end_session(active_session.id))
         
         # Create a new session
         new_session = Session(
@@ -126,7 +126,7 @@ async def start_conversation():
             start_time=datetime.now(timezone.utc),
             transcript=[]
         )
-        new_session.insert()
+        asyncio.run(new_session.insert())
         
         # Store the session in g for this request context
         g.current_session = new_session

@@ -3,6 +3,7 @@ from beanie import Document, PydanticObjectId
 from typing import Optional
 from pydantic import BaseModel
 from typing import Dict, List
+import asyncio
 
 class User(Document):
     id: PydanticObjectId = None
@@ -60,8 +61,6 @@ class ConversationLog(Document):
     class Meta:
         collection = "conversation_logs"  # Collection name in MongoDB
 
-
-
 class Session(Document):
     user_email: str
     conversation_id: Optional[str]
@@ -81,6 +80,11 @@ class Session(Document):
         return await cls.find_one({"user_email": email, "is_active": True})
     
     @classmethod
+    def get_active_session(cls, email: str) -> Optional["Session"]:
+        """Sync wrapper for async find_active_by_email()."""
+        return asyncio.run(cls.find_active_by_email(email))
+    
+    @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
         """
         End a session by setting is_active to False and updating end_time.
@@ -92,3 +96,8 @@ class Session(Document):
             await session.save()
             return session
         return None
+
+    @classmethod
+    def close_session(cls, session_id: PydanticObjectId):
+        """Sync wrapper for async end_session()."""
+        return asyncio.run(cls.end_session(session_id))

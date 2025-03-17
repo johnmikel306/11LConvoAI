@@ -24,7 +24,7 @@ def init_routes(app):
                 user_email = decoded.get('email')
                 
                 # Find active session for this user
-                active_session = Session.find_active_by_email(user_email)
+                active_session = Session.get_active_session(user_email)
                 g.current_session = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
@@ -90,7 +90,7 @@ def init_routes(app):
                 # End any active sessions for this user
                 active_session = asyncio.run(Session.find_active_by_email(user_email))
                 if active_session:
-                    asyncio.run(Session.end_session(active_session.id))
+                    asyncio.run(Session.close_session(active_session.id))
 
                 new_session = Session(
                     user_email=user_email,
