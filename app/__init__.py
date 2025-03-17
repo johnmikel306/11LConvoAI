@@ -19,15 +19,16 @@ def init_app():
         raise ValueError("SECRET_KEY environment variable is required for session management.")
     app.asgi_app = WsgiToAsgi(app)  # Enable ASGI support
 
-    # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-    
     # Initialize the database connection
     try:
-        eventlet.spawn(setup_db)
+        eventlet.spawn(setup_db).wait()  # Ensure the database is initialized before proceeding
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
+        raise e
+
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
     
     # Initialize routes
     init_routes(app)
