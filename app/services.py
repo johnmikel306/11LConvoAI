@@ -85,7 +85,14 @@ async def create_user(email):
         raise e
     
 def create_user_sync(email):
-    return eventlet.spawn(create_user, email).wait()
+    """
+    Synchronous wrapper for create_user using eventlet
+    """
+    try:
+        return eventlet.spawn(create_user, email).wait()
+    except Exception as e:
+        logger.error(f"Error creating user {email}: {str(e)}")
+        raise e
     
 async def get_user_by_email(email):
     return await User.find_by_email(email)

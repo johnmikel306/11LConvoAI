@@ -52,7 +52,8 @@ def setup_db_sync():
     Synchronous wrapper for setup_db using eventlet
     """
     try:
-        return eventlet.spawn(lambda: eventlet.event.Event().wait()).wait()._run(setup_db())
+        # Use eventlet to run the async setup_db function synchronously
+        return eventlet.spawn(setup_db).wait()
     except Exception as e:
         logger.error(f"Database sync setup failed: {str(e)}")
         raise
