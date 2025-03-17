@@ -86,7 +86,7 @@ def init_routes(app):
             if user_email:
                 # Save the user to DB
                 try:
-                    user = await create_user(user_email)  # Ensure this is awaited
+                    user = await create_user(user_email)
                 except Exception as e:
                     logger.error(f"Failed to create user: {str(e)}")
                     return jsonify({"status": "error", "message": "Failed to create user."}), 500
@@ -95,6 +95,15 @@ def init_routes(app):
                 active_session = await Session.find_active_by_email(user_email)
                 if active_session:
                     await Session.end_session(active_session.id)
+
+                # Create a new session
+                new_session = Session(
+                    user_email=user_email,
+                    is_active=True,
+                    start_time=datetime.now(datetime.timezone.utc),
+                    transcript=[]
+                )
+                await new_session.insert()
 
                 # Create JWT token
                 token = jwt.encode({
