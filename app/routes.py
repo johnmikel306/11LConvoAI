@@ -85,27 +85,19 @@ def init_routes(app):
             logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
             user_email = validate_service_ticket(ticket, service_url)
 
-            if not user_email:
-                return jsonify({"status": "error", "message": "Invalid ticket"}), 401
+            # if not user_email:
+            #     return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
-            try:
-                user = await create_user(user_email)
+            # try:
+            #     user = await create_user(user_email)
 
-                # End any active sessions for this user (await the coroutine)
-                active_session = await Session.find_active_by_email(user_email)
-                if active_session:
-                    await Session.close_session(active_session.id)
-            except DocumentNotFound:
-                logger.error(f"Failed to find/create user: {user_email}")
-                return jsonify({"status": "error", "message": "User creation failed"}), 500
-
-            new_session = Session(
-                user_email=user_email,
-                is_active=True,
-                start_time=datetime.now(datetime.timezone.utc),
-                transcript=[]
-            )
-            await new_session.insert()
+            #     # End any active sessions for this user (await the coroutine)
+            #     active_session = await Session.find_active_by_email(user_email)
+            #     if active_session:
+            #         await Session.close_session(active_session.id)
+            # except DocumentNotFound:
+            #     logger.error(f"Failed to find/create user: {user_email}")
+            #     return jsonify({"status": "error", "message": "User creation failed"}), 500
 
             token = jwt.encode({
                 'email': user_email,
