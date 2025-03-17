@@ -41,4 +41,4 @@ def init_app():
 app, socketio = init_app()
 
 # Export app and socketio for use in other modules
-__all__ = ['app', 'socketio', 'loop']
+__all__ = ['app', 'socketio']
