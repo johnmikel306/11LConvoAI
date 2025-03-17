@@ -85,26 +85,22 @@ def init_routes(app):
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
-                # Save the user to DB
-                try:
-                    user = await create_user(user_email)
-                except Exception as e:
-                    logger.error(f"Failed to create user: {str(e)}")
-                    return jsonify({"status": "error", "message": "Failed to create user."}), 500
+                # Ensure we run async functions in the correct event loop
+                loop = asyncio.get_running_loop()
+                user = await create_user(user_email)  # Corrected async call
 
                 # End any active sessions for this user
                 active_session = await Session.find_active_by_email(user_email)
                 if active_session:
-                    Session.end_session(active_session.id)
+                    await Session.end_session(active_session.id)
 
-                # Create a new session
                 new_session = Session(
                     user_email=user_email,
                     is_active=True,
                     start_time=datetime.now(datetime.timezone.utc),
                     transcript=[]
                 )
-                new_session.insert()
+                await new_session.insert()
 
                 # Create JWT token
                 token = jwt.encode({
