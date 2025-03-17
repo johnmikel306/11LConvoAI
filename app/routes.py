@@ -9,11 +9,12 @@ from .services import create_user, create_user_sync, get_transcript, start_conve
 from .utils.logger import logger
 from .models import Grade, Session, User
 import eventlet
+from beanie.exceptions import DocumentNotFound
 
 def init_routes(app):
     # Request middleware to set current session in g
     @app.before_request
-    def load_session():
+    async def load_session():
         auth_header = request.headers.get('Authorization')
         
         if auth_header and auth_header.startswith('Bearer '):
@@ -24,7 +25,7 @@ def init_routes(app):
                 user_email = decoded.get('email')
                 
                 # Find active session for this user
-                active_session = Session.find_active_by_email(user_email)
+                active_session = await Session.find_active_by_email(user_email)
                 g.current_session = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
@@ -84,35 +85,34 @@ def init_routes(app):
             logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
             user_email = validate_service_ticket(ticket, service_url)
 
-            if user_email:
-                # Create the user (await the coroutine)
+            if not user_email:
+                return jsonify({"status": "error", "message": "Invalid ticket"}), 401
+
+            try:
                 user = await create_user(user_email)
 
                 # End any active sessions for this user (await the coroutine)
                 active_session = await Session.find_active_by_email(user_email)
                 if active_session:
                     await Session.close_session(active_session.id)
+            except DocumentNotFound:
+                logger.error(f"Failed to find/create user: {user_email}")
+                return jsonify({"status": "error", "message": "User creation failed"}), 500
 
-                # Create a new session (await the coroutine)
-                new_session = Session(
-                    user_email=user_email,
-                    is_active=True,
-                    start_time=datetime.now(datetime.timezone.utc),
-                    transcript=[]
-                )
-                await new_session.insert()
+            new_session = Session(
+                user_email=user_email,
+                is_active=True,
+                start_time=datetime.now(datetime.timezone.utc),
+                transcript=[]
+            )
+            await new_session.insert()
 
-                # Create JWT token
-                token = jwt.encode({
-                    'email': user_email,
-                    'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
-                }, os.getenv('JWT_SECRET'))   
+            token = jwt.encode({
+                'email': user_email,
+                'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+            }, os.getenv('JWT_SECRET'))   
 
-                return jsonify({'token': token })
-
-            else:
-                logger.error("Failed to validate CAS ticket.")
-                return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
+            return jsonify({'token': token })
         except Exception as e:
             logger.error(f"Error in /cas/validate: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -175,7 +175,7 @@ def init_routes(app):
     # New endpoint to get user's sessions
     @app.route('/sessions', methods=['GET'])
     # @token_required
-    def get_user_sessions():
+    async def get_user_sessions():
         try:
             # Get the current user email from JWT token
             auth_header = request.headers.get('Authorization')
@@ -190,7 +190,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find all sessions for this user
-            sessions = Session.find(Session.user_email == user_email).to_list()
+            sessions = await Session.find(Session.user_email == user_email).to_list()
             
             # Format sessions for response
             formatted_sessions = []
@@ -215,7 +215,7 @@ def init_routes(app):
     # New endpoint to get grades for a user
     @app.route('/grades', methods=['GET'])
     # @token_required
-    def get_user_grades():
+    async def get_user_grades():
         try:
             # Get the current user email from JWT token
             auth_header = request.headers.get('Authorization')
@@ -230,12 +230,12 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find the user
-            user = User.find_by_email(user_email)
+            user = await User.find_by_email(user_email)
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
                 
             # Find all grades for this user
-            grades = Grade.find(Grade.user.id == user.id).to_list()
+            grades = await Grade.find(Grade.user.id == user.id).to_list()
             
             # Format grades for response
             formatted_grades = []

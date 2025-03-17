@@ -9,6 +9,7 @@ from .sockets import init_sockets
 from .routes import init_routes
 from .config.db import setup_db
 from .utils.logger import logger
+from asgiref.wsgi import WsgiToAsgi
 
 def init_app():
     # Initialize Flask app
@@ -16,6 +17,7 @@ def init_app():
     app.secret_key = os.getenv("SECRET_KEY")
     if not app.secret_key:
         raise ValueError("SECRET_KEY environment variable is required for session management.")
+    app.asgi_app = WsgiToAsgi(app)  # Enable ASGI support
 
     # Initialize SocketIO
     socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
