@@ -63,16 +63,19 @@ def get_signed_url():
     return jsonify({"status": "success", "signed_url": signed_url.signed_url})
 
 # Create user function
-async def create_user(email):
+def create_user(email):
+
     try:
         logger.info(f"Attempting to create user with email: {email}")
-        existing_user = await User.find_by_email(email)
+        existing_user = User.find_by_email(email)
+
         if existing_user:
             logger.info(f"User with email {email} already exists.")
             return existing_user
 
         user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
-        await user.save_to_db()
+        user.save_to_db()
+
         logger.info(f"User with email {email} created successfully.")
         return user
     except Exception as e:
