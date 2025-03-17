@@ -12,41 +12,34 @@ from .config.db import setup_db
 from .utils.logger import logger
 
 def init_app():
-  # Initialize Flask app
-  app = Flask(__name__)
-  # Set the secret key
-  app.secret_key = os.getenv("SECRET_KEY")
-  if not app.secret_key:
-   
-      raise ValueError("SECRET_KEY environment variable is required for session management.")
+    # Initialize Flask app
+    app = Flask(__name__)
+    app.secret_key = os.getenv("SECRET_KEY")
+    if not app.secret_key:
+        raise ValueError("SECRET_KEY environment variable is required for session management.")
 
-  # Initialize SocketIO
-  socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-  
-  # Return the app and socketio instances
-  return app, socketio
-
-(app, socketio) = init_app()
-
-# Initialize the database connection
-def setup_async_db():
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+    
+    # Initialize the database connection
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
         loop.run_until_complete(setup_db())
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
-    finally:
-        loop.close()
+    
+    # Initialize routes
+    init_routes(app)
 
-setup_async_db()
+    # Initialize sockets
+    init_sockets(socketio)
+    
+    return app, socketio, loop
 
-# Initialize routes
-init_routes(app)
-
-# Initialize sockets
-init_sockets(socketio)
+app, socketio, loop = init_app()
 
 # Export app and socketio for use in other modules
-__all__ = ['app', 'socketio']
+__all__ = ['app', 'socketio', 'loop']

@@ -24,5 +24,5 @@ async def setup_db():
     client = AsyncIOMotorClient(dbURI)
 
     # Initialize beanie with the database and document models
-    await init_beanie(database=client.db_name, document_models=[User, CaseStudy, Grade, Session]) # db_name is the database name
+    await init_beanie(database=client.ailp, document_models=[User, CaseStudy, Grade, Session]) # db_name is the database name
     logger.info(f"Database connected successfully at: {dbURI}")
