@@ -7,9 +7,8 @@ load_dotenv()
 
 from .sockets import init_sockets
 from .routes import init_routes
-from .config.db import setup_db
+from .config.db import setup_db_sync
 from .utils.logger import logger
-from asgiref.wsgi import WsgiToAsgi
 
 def init_app():
     # Initialize Flask app
@@ -17,11 +16,10 @@ def init_app():
     app.secret_key = os.getenv("SECRET_KEY")
     if not app.secret_key:
         raise ValueError("SECRET_KEY environment variable is required for session management.")
-    app.asgi_app = WsgiToAsgi(app)  # Enable ASGI support
 
     # Initialize the database connection
     try:
-        eventlet.spawn(setup_db).wait()  # Ensure the database is initialized before proceeding
+        setup_db_sync()
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
