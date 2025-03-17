@@ -72,7 +72,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/cas/validate', methods=['POST'])
-    async def cas_validate():
+    def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
