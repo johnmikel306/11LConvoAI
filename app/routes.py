@@ -70,7 +70,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         # CAS Validation Route (continued)
     @app.route('/cas/validate', methods=['POST'])
-    async def cas_validate():
+    def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
@@ -83,26 +83,13 @@ def init_routes(app):
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
-                # Save the user to DB
-                try:
-                    user = await create_user(user_email)
-                except Exception as e:
-                    logger.error(f"Failed to create user: {str(e)}")
-                    return jsonify({"status": "error", "message": "Failed to create user."}), 500
-
-                # End any active sessions for this user
-                active_session = await Session.find_active_by_email(user_email)
-                if active_session:
-                    await Session.end_session(active_session.id)
-
-                # Create JWT token
+                # Create JWT token without saving user
                 token = jwt.encode({
                     'email': user_email,
-                    'exp' : datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+                    'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
                 }, os.getenv('JWT_SECRET'))   
 
-                return jsonify({'token': token })
-
+                return jsonify({'token': token})
             else:
                 logger.error("Failed to validate CAS ticket.")
                 return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
