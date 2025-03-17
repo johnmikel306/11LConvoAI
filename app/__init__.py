@@ -30,10 +30,15 @@ def init_app():
 
 # Initialize the database connection
 def setup_async_db():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(setup_db())
-    loop.close()
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(setup_db())
+        logger.info("Database connection established successfully.")
+    except Exception as e:
+        logger.error(f"Failed to connect to the database: {str(e)}")
+    finally:
+        loop.close()
 
 setup_async_db()
 
