@@ -1,5 +1,4 @@
 import os
-
 import eventlet
 from ..models import Session, User, CaseStudy, Grade
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -25,9 +24,18 @@ async def setup_db():
     # Beanie uses Motor async client under the hood 
     client = AsyncIOMotorClient(dbURI)
 
-    # Initialize beanie with the database and document models
-    await init_beanie(database=client.ailp, document_models=[User, CaseStudy, Grade, Session]) # db_name is the database name
-    logger.info(f"Database connected successfully at: {dbURI}")
+    # Initialize beanie with the database and document models and verify connection
+    try:
+        await init_beanie(
+            database=client.ailp,
+            document_models=[User, CaseStudy, Grade, Session]
+        )
+        # Verify connection
+        count = await User.count()
+        logger.info(f"Database connected successfully at: {dbURI}. Found {count} users.")
+    except Exception as e:
+        logger.error(f"Database connection failed: {str(e)}")
+        raise
 
-def setup_db_sync():
+def setup_db_sync(): 
     return eventlet.spawn(setup_db).wait()

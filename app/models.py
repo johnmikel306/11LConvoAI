@@ -82,19 +82,6 @@ class Session(Document):
     
     @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
-        """
-        End a session by setting is_active to False and updating end_time.
-        """
-        session = await cls.get(session_id)
-        if session:
-            session.is_active = False
-            session.end_time = datetime.now(datetime.timezone.utc)
-            await session.save()
-            return session
-        return None
-
-    @classmethod
-    async def close_session(cls, session_id: PydanticObjectId):
         """Asynchronously end a session."""
         session = await cls.get(session_id)
         if session:
@@ -104,15 +91,4 @@ class Session(Document):
             return session
         return None
 
-    @classmethod
-    async def cleanup_stale_sessions(cls, timeout_minutes: int = 30):
-        """Cleanup sessions that have been inactive for more than timeout_minutes"""
-        timeout_time = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
-        await cls.find(
-            {"is_active": True, "start_time": {"$lt": timeout_time}}
-        ).update({"$set": {"is_active": False, "end_time": datetime.now(timezone.utc)}})
-
-    async def refresh(self):
-        """Refresh session timestamp"""
-        self.last_activity = datetime.now(timezone.utc)
-        await self.save()
+    
