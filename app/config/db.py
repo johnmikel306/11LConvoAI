@@ -1,10 +1,10 @@
 import os
 import eventlet
-from ..models import Session, User, CaseStudy, Grade
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from dotenv import load_dotenv
 from ..utils.logger import logger
+from ..models import Session, User, CaseStudy, Grade, ConversationLog 
 
 async def setup_db():
     # Load environment variables
@@ -21,18 +21,28 @@ async def setup_db():
     if not dbURI:
         raise ValueError("MONGO_URI environment variable is required.")
 
-    # Beanie uses Motor async client under the hood 
-    client = AsyncIOMotorClient(dbURI)
-
-    # Initialize beanie with the database and document models and verify connection
     try:
+        # Create Motor client
+        client = AsyncIOMotorClient(dbURI)
+        
+        # Initialize Beanie with ALL document models
         await init_beanie(
-            database=client.ailp,
-            document_models=[User, CaseStudy, Grade, Session]
+            database=client.get_database("ailp"),
+            document_models=[
+                User,
+                CaseStudy,
+                Grade,
+                ConversationLog,  # Added missing model
+                Session
+            ]
         )
+        
         # Verify connection
+        await client.admin.command('ping')
         count = await User.count()
-        logger.info(f"Database connected successfully at: {dbURI}. Found {count} users.")
+        logger.info(f"Database connected successfully. Found {count} users.")
+        
+        return client
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
         raise
