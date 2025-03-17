@@ -1,11 +1,11 @@
 # decorator for verifying the JWT
-from asyncio.log import logger
+from ..utils.logger import logger
 from functools import wraps
 import os
-from app.services import get_user_by_email
+from ..services import get_user_by_email
 from flask import jsonify, request
 import jwt
-import asyncio
+import eventlet
 
 
 def token_required(f):
@@ -27,7 +27,7 @@ def token_required(f):
             if not email:
                 return jsonify({'message': 'Email not found in token'}), 401
              # Fetch the user details using the email from DB and store in current_user
-            user = asyncio.run(get_user_by_email(email))
+            user = get_user_by_email(email)
             if not user:
                 return jsonify({'message' : 'User not found!'}), 401
             

@@ -1,5 +1,5 @@
 import os
-import asyncio
+import eventlet
 from flask import Flask
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -21,11 +21,8 @@ def init_app():
     socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
     
     # Initialize the database connection
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     try:
-        loop.run_until_complete(setup_db())
+        eventlet.spawn(setup_db)
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
@@ -36,9 +33,9 @@ def init_app():
     # Initialize sockets
     init_sockets(socketio)
     
-    return app, socketio, loop
+    return app, socketio
 
-app, socketio, loop = init_app()
+app, socketio = init_app()
 
 # Export app and socketio for use in other modules
 __all__ = ['app', 'socketio', 'loop']

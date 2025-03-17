@@ -1,4 +1,3 @@
-import json
 from .models import CaseStudy, ConversationLog, User, Session, Grade
 import os
 from elevenlabs.client import ElevenLabs
@@ -12,7 +11,7 @@ from flask import jsonify
 import logging
 from flask import jsonify, request, g
 from .utils.logger import logger
-import asyncio
+import eventlet
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -79,6 +78,9 @@ async def create_user(email):
     except Exception as e:
         logger.error(f"Error creating user: {str(e)}")
         raise e
+    
+def create_user_sync(email):
+    return eventlet.spawn(create_user, email).wait()
     
 async def get_user_by_email(email):
     return await User.find_by_email(email)

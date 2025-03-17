@@ -1,4 +1,6 @@
 import os
+
+import eventlet
 from ..models import Session, User, CaseStudy, Grade
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
@@ -26,3 +28,6 @@ async def setup_db():
     # Initialize beanie with the database and document models
     await init_beanie(database=client.ailp, document_models=[User, CaseStudy, Grade, Session]) # db_name is the database name
     logger.info(f"Database connected successfully at: {dbURI}")
+
+def setup_db_sync():
+    return eventlet.spawn(setup_db).wait()

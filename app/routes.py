@@ -5,10 +5,10 @@ from flask import jsonify, render_template, redirect, url_for, request, session,
 from .utils.jwt import token_required
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import create_user, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
+from .services import create_user, create_user_sync, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
 from .utils.logger import logger
 from .models import Grade, Session, User
-import asyncio
+import eventlet
 
 def init_routes(app):
     # Request middleware to set current session in g
@@ -24,7 +24,7 @@ def init_routes(app):
                 user_email = decoded.get('email')
                 
                 # Find active session for this user
-                active_session = asyncio.run(Session.find_active_by_email(user_email))
+                active_session = Session.find_active_by_email(user_email)
                 g.current_session = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
@@ -85,12 +85,12 @@ def init_routes(app):
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
-                user = asyncio.run(create_user(user_email))
+                user = create_user_sync(user_email)
 
                 # End any active sessions for this user
-                active_session = asyncio.run(Session.find_active_by_email(user_email))
+                active_session = Session.find_active_by_email(user_email)
                 if active_session:
-                    asyncio.run(Session.close_session(active_session.id))
+                    Session.close_session(active_session.id)
 
                 new_session = Session(
                     user_email=user_email,
@@ -98,7 +98,7 @@ def init_routes(app):
                     start_time=datetime.now(datetime.timezone.utc),
                     transcript=[]
                 )
-                asyncio.run(new_session.insert())
+                new_session.insert()
 
                 # Create JWT token
                 token = jwt.encode({
@@ -189,7 +189,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find all sessions for this user
-            sessions = asyncio.run(Session.find(Session.user_email == user_email).to_list())
+            sessions = Session.find(Session.user_email == user_email).to_list()
             
             # Format sessions for response
             formatted_sessions = []
@@ -229,12 +229,12 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find the user
-            user = asyncio.run(User.find_by_email(user_email))
+            user = User.find_by_email(user_email)
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
                 
             # Find all grades for this user
-            grades = asyncio.run(Grade.find(Grade.user.id == user.id).to_list())
+            grades = Grade.find(Grade.user.id == user.id).to_list()
             
             # Format grades for response
             formatted_grades = []

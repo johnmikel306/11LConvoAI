@@ -1,9 +1,9 @@
 from datetime import datetime
 from beanie import Document, PydanticObjectId
 from typing import Optional
+import eventlet
 from pydantic import BaseModel
 from typing import Dict, List
-import asyncio
 
 class User(Document):
     id: PydanticObjectId = None
@@ -30,6 +30,9 @@ class User(Document):
         await self.insert()
         return self
     
+    def find_by_email_sync(self, email: str) -> Optional["User"]:
+        return eventlet.spawn(self.find_by_email, email).wait()
+
 class CaseStudy(Document): 
     title: str
     description: str
@@ -82,7 +85,7 @@ class Session(Document):
     @classmethod
     def get_active_session(cls, email: str) -> Optional["Session"]:
         """Sync wrapper for async find_active_by_email()."""
-        return asyncio.run(cls.find_active_by_email(email))
+        return eventlet.spawn(cls.find_active_by_email, email).wait()
     
     @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
@@ -100,4 +103,4 @@ class Session(Document):
     @classmethod
     def close_session(cls, session_id: PydanticObjectId):
         """Sync wrapper for async end_session()."""
-        return asyncio.run(cls.end_session(session_id))
+        return eventlet.spawn(cls.end_session, session_id).wait()
