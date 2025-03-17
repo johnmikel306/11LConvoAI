@@ -5,14 +5,16 @@ from flask import jsonify, render_template, redirect, url_for, request, session,
 from .utils.jwt import token_required
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import create_user, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
+from .services import create_user, create_user_sync, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
 from .utils.logger import logger
 from .models import Grade, Session, User
+import eventlet
+from beanie.exceptions import DocumentNotFound
 
 def init_routes(app):
     # Request middleware to set current session in g
     @app.before_request
-    def load_session():
+    async def load_session():
         auth_header = request.headers.get('Authorization')
         
         if auth_header and auth_header.startswith('Bearer '):
@@ -23,7 +25,7 @@ def init_routes(app):
                 user_email = decoded.get('email')
                 
                 # Find active session for this user
-                active_session = Session.find_active_by_email(user_email)
+                active_session = await Session.find_active_by_email(user_email)
                 g.current_session = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
@@ -68,7 +70,7 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error in /cas/auth-url: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
-        # CAS Validation Route (continued)
+    
     @app.route('/cas/validate', methods=['POST'])
     def cas_validate():
         try:
@@ -80,6 +82,7 @@ def init_routes(app):
 
             # Validate the Service Ticket
             service_url = "https://miva-mind.vercel.app/auth/cas/callback"
+            logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
@@ -155,7 +158,7 @@ def init_routes(app):
     # New endpoint to get user's sessions
     @app.route('/sessions', methods=['GET'])
     # @token_required
-    def get_user_sessions():
+    async def get_user_sessions():
         try:
             # Get the current user email from JWT token
             auth_header = request.headers.get('Authorization')
@@ -170,7 +173,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find all sessions for this user
-            sessions = Session.find(Session.user_email == user_email).to_list()
+            sessions = await Session.find(Session.user_email == user_email).to_list()
             
             # Format sessions for response
             formatted_sessions = []
@@ -195,7 +198,7 @@ def init_routes(app):
     # New endpoint to get grades for a user
     @app.route('/grades', methods=['GET'])
     # @token_required
-    def get_user_grades():
+    async def get_user_grades():
         try:
             # Get the current user email from JWT token
             auth_header = request.headers.get('Authorization')
@@ -210,12 +213,12 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find the user
-            user = User.find_by_email(user_email)
+            user = await User.find_by_email(user_email)
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
                 
             # Find all grades for this user
-            grades = Grade.find(Grade.user.id == user.id).to_list()
+            grades = await Grade.find(Grade.user.id == user.id).to_list()
             
             # Format grades for response
             formatted_grades = []

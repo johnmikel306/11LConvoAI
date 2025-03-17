@@ -1,11 +1,11 @@
-
 # decorator for verifying the JWT
-from asyncio.log import logger
+from ..utils.logger import logger
 from functools import wraps
 import os
-from app.services import get_user_by_email
+from ..services import get_user_by_email
 from flask import jsonify, request
 import jwt
+import eventlet
 
 
 def token_required(f):

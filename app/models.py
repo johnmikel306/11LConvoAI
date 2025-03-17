@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from beanie import Document, PydanticObjectId
 from typing import Optional
+import eventlet
 from pydantic import BaseModel
 from typing import Dict, List
 
@@ -28,7 +29,7 @@ class User(Document):
         """
         await self.insert()
         return self
-    
+
 class CaseStudy(Document): 
     title: str
     description: str
@@ -60,8 +61,6 @@ class ConversationLog(Document):
     class Meta:
         collection = "conversation_logs"  # Collection name in MongoDB
 
-
-
 class Session(Document):
     user_email: str
     conversation_id: Optional[str]
@@ -69,6 +68,7 @@ class Session(Document):
     start_time: datetime = datetime.utcnow()
     end_time: Optional[datetime] = None
     transcript: Optional[List[Dict]] = []
+    last_activity: Optional[datetime] = None  # Timestamp of last activity in the session
 
     class Meta:
         collection = "sessions"  # Collection name in MongoDB
@@ -82,9 +82,7 @@ class Session(Document):
     
     @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
-        """
-        End a session by setting is_active to False and updating end_time.
-        """
+        """Asynchronously end a session."""
         session = await cls.get(session_id)
         if session:
             session.is_active = False
@@ -92,3 +90,5 @@ class Session(Document):
             await session.save()
             return session
         return None
+
+    
