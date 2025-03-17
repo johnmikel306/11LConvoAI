@@ -29,9 +29,6 @@ class User(Document):
         """
         await self.insert()
         return self
-    
-    def find_by_email_sync(self, email: str) -> Optional["User"]:
-        return eventlet.spawn(self.find_by_email, email).wait()
 
 class CaseStudy(Document): 
     title: str
@@ -83,11 +80,6 @@ class Session(Document):
         return await cls.find_one({"user_email": email, "is_active": True})
     
     @classmethod
-    def get_active_session(cls, email: str) -> Optional["Session"]:
-        """Sync wrapper for async find_active_by_email()."""
-        return eventlet.spawn(cls.find_active_by_email, email).wait()
-    
-    @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
         """
         End a session by setting is_active to False and updating end_time.
@@ -101,6 +93,12 @@ class Session(Document):
         return None
 
     @classmethod
-    def close_session(cls, session_id: PydanticObjectId):
-        """Sync wrapper for async end_session()."""
-        return eventlet.spawn(cls.end_session, session_id).wait()
+    async def close_session(cls, session_id: PydanticObjectId):
+        """Asynchronously end a session."""
+        session = await cls.get(session_id)
+        if session:
+            session.is_active = False
+            session.end_time = datetime.now(datetime.timezone.utc)
+            await session.save()
+            return session
+        return None
