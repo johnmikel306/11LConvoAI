@@ -71,7 +71,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/cas/validate', methods=['POST'])
-    async def cas_validate():
+    def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
@@ -85,14 +85,12 @@ def init_routes(app):
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
-                # Ensure we run async functions in the correct event loop
-                loop = asyncio.get_running_loop()
-                user = await create_user(user_email)  # Corrected async call
+                user = asyncio.run(create_user(user_email))
 
                 # End any active sessions for this user
-                active_session = await Session.find_active_by_email(user_email)
+                active_session = asyncio.run(Session.find_active_by_email(user_email))
                 if active_session:
-                    await Session.end_session(active_session.id)
+                    asyncio.run(Session.end_session(active_session.id))
 
                 new_session = Session(
                     user_email=user_email,
@@ -100,7 +98,7 @@ def init_routes(app):
                     start_time=datetime.now(datetime.timezone.utc),
                     transcript=[]
                 )
-                await new_session.insert()
+                asyncio.run(new_session.insert())
 
                 # Create JWT token
                 token = jwt.encode({
