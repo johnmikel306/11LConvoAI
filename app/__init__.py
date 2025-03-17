@@ -17,6 +17,9 @@ def init_app():
     if not app.secret_key:
         raise ValueError("SECRET_KEY environment variable is required for session management.")
 
+    # Initialize SocketIO
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')    
+    
     # Initialize the database connection
     try:
         setup_db_sync()
@@ -25,8 +28,7 @@ def init_app():
         logger.error(f"Failed to connect to the database: {str(e)}")
         raise e
 
-    # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+    
     
     # Initialize routes
     init_routes(app)
