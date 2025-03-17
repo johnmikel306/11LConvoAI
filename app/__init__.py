@@ -27,8 +27,6 @@ def init_app():
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
         raise e
-
-    
     
     # Initialize routes
     init_routes(app)

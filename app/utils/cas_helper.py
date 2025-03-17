@@ -20,7 +20,7 @@ def validate_service_ticket(ticket, service_url):
     }
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
-    logger.info(f"CAS Validation Response: {response.text}")
+    # logger.info(f"CAS Validation Response: {response.text}")
 
     if response.status_code == 200:
         try:

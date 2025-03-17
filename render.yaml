@@ -3,8 +3,7 @@ services:
     name: elevenlabs-chat
     env: docker
     buildCommand: ./build.sh
-    startCommand: gunicorn --worker-class eventlet -w 1 --timeout 120 -b 0.0.0.0:10000 'app:app'
-    envVars:
+    startCommand: gunicorn --worker-class eventlet -w 1 app:app
       - key: AGENT_ID
         value: ${AGENT_ID}
       - key: ELEVENLABS_API_KEY
