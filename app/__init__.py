@@ -1,4 +1,3 @@
-# Initialize Flask app and extensions
 import os
 import asyncio
 from flask import Flask

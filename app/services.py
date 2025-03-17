@@ -1,4 +1,3 @@
-# from app.services import get_transcript
 import json
 from .models import CaseStudy, ConversationLog, User, Session, Grade
 import os
@@ -63,18 +62,17 @@ def get_signed_url():
     return jsonify({"status": "success", "signed_url": signed_url.signed_url})
 
 # Create user function
-def create_user(email):
-
+async def create_user(email):
     try:
         logger.info(f"Attempting to create user with email: {email}")
-        existing_user = asyncio.run(User.find_by_email(email))
+        existing_user = await User.find_by_email(email)
 
         if existing_user:
             logger.info(f"User with email {email} already exists.")
             return existing_user
 
         user = User(email=email, name="", role="student", date_added=datetime.now(timezone.utc), date_updated=datetime.now(timezone.utc))
-        asyncio.run(user.save_to_db())
+        await user.save_to_db()
 
         logger.info(f"User with email {email} created successfully.")
         return user
@@ -82,8 +80,8 @@ def create_user(email):
         logger.error(f"Error creating user: {str(e)}")
         raise e
     
-def get_user_by_email(email):
-    return User.find_by_email(email)
+async def get_user_by_email(email):
+    return await User.find_by_email(email)
 
 # API Endpoints
 async def start_conversation():
@@ -109,14 +107,14 @@ async def start_conversation():
         chat_history = []
         
         # Create and store a new session in the database
-        user = asyncio.run(get_user_by_email(user_email))
+        user = await get_user_by_email(user_email)
         if not user:
-            user = asyncio.run(create_user(user_email))
+            user = await create_user(user_email)
             
         # End any existing active sessions for this user
-        active_session = asyncio.run(Session.find_active_by_email(user_email))
+        active_session = await Session.find_active_by_email(user_email)
         if active_session:
-            asyncio.run(Session.end_session(active_session.id))
+            await Session.end_session(active_session.id)
         
         # Create a new session
         new_session = Session(
@@ -126,7 +124,7 @@ async def start_conversation():
             start_time=datetime.now(timezone.utc),
             transcript=[]
         )
-        asyncio.run(new_session.insert())
+        await new_session.insert()
         
         # Store the session in g for this request context
         g.current_session = new_session
@@ -194,7 +192,7 @@ async def save_conversation_to_db(conversation_id, transcript, user_email):
     """
     try:
         # Find the user
-        user = User.find_by_email(user_email)
+        user = await User.find_by_email(user_email)
         if not user:
             user = await create_user(user_email)
         
@@ -204,7 +202,7 @@ async def save_conversation_to_db(conversation_id, transcript, user_email):
             transcript=transcript,
             timestamp=datetime.now(timezone.utc)
         )
-        conversation_log.insert()
+        await conversation_log.insert()
         logger.info(f"Conversation {conversation_id} saved to database for user {user_email}.")
     except Exception as e:
         logger.error(f"Error saving conversation to database: {e}")
@@ -229,7 +227,7 @@ def fetch_conversation_transcript(conversation_id):
     return str(trans)
    
 
-def grade_conversation(conversation_id, user_email):
+async def grade_conversation(conversation_id, user_email):
     """
     Grade the conversation using the LLM and save the grade to the database.
     """
@@ -243,7 +241,7 @@ def grade_conversation(conversation_id, user_email):
     grading_result = llm_grade_conversation(transcript, conversation_id)
     
     # Save the grade to the database
-    save_grade_to_db(conversation_id, grading_result, user_email)
+    await save_grade_to_db(conversation_id, grading_result, user_email)
     
     return grading_result
     # except Exception as e:
@@ -269,7 +267,7 @@ async def save_grade_to_db(conversation_id, grading_result, user_email):
             performance_summary=grading_result.performance_summary,
             timestamp=datetime.now(timezone.utc)
         )
-        grade.insert()
+        await grade.insert()
         logger.info(f"Grade for conversation {conversation_id} saved to database for user {user.email}.")
        
     except Exception as e:

@@ -24,7 +24,7 @@ def init_routes(app):
                 user_email = decoded.get('email')
                 
                 # Find active session for this user
-                active_session = Session.get_active_session(user_email)
+                active_session = asyncio.run(Session.find_active_by_email(user_email))
                 g.current_session = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
@@ -189,7 +189,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find all sessions for this user
-            sessions = Session.find(Session.user_email == user_email).to_list()
+            sessions = asyncio.run(Session.find(Session.user_email == user_email).to_list())
             
             # Format sessions for response
             formatted_sessions = []
@@ -229,12 +229,12 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
                 
             # Find the user
-            user = User.find_by_email(user_email)
+            user = asyncio.run(User.find_by_email(user_email))
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
                 
             # Find all grades for this user
-            grades = Grade.find(Grade.user.id == user.id).to_list()
+            grades = asyncio.run(Grade.find(Grade.user.id == user.id).to_list())
             
             # Format grades for response
             formatted_grades = []
