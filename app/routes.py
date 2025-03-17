@@ -77,12 +77,12 @@ def init_routes(app):
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
             if not ticket:
-                logger.error("Invalid request: No ticket provided.")
+                # logger.error("Invalid request: No ticket provided.")
                 return jsonify({"status": "error", "message": "No ticket provided."}), 400
 
             # Validate the Service Ticket
             service_url = "https://miva-mind.vercel.app/auth/cas/callback"
-            logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
+            # logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
             user_email = validate_service_ticket(ticket, service_url)
 
             if user_email:
@@ -94,10 +94,10 @@ def init_routes(app):
 
                 return jsonify({'token': token})
             else:
-                logger.error("Failed to validate CAS ticket.")
+                # logger.error("Failed to validate CAS ticket.")
                 return jsonify({"status": "error", "message": "Failed to validate ticket."}), 401
         except Exception as e:
-            logger.error(f"Error in /cas/validate: {str(e)}")
+            # logger.error(f"Error in /cas/validate: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
 
     # CAS Logout Route
