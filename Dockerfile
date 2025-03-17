@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 # Expose the port the app runs on
-EXPOSE 10000
+EXPOSE 8888
 
 # Set environment variables
 ENV FLASK_APP=run.py
