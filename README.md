@@ -38,6 +38,7 @@ Access the application at `http://localhost:8888`.
 - **`/start`**: Starts a conversation.
 - **`/stop`**: Stops the conversation.
 - **`/transcript`**: Retrieves the conversation transcript.
+- **`/welcome`**: Returns a welcome message.
 
 ## Dependencies
 - Flask==2.3.2
@@ -47,6 +48,7 @@ Access the application at `http://localhost:8888`.
 - elevenlabs
 - gunicorn==20.1.0
 - elevenlabs[pyaudio]==1.0.0
+- new_dependency==1.0.0
 
 ## Environment Variables
 - `SECRET_KEY`: Secret key for the Flask application.

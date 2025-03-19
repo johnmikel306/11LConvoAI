@@ -40,7 +40,6 @@ def init_routes(app):
     
    
     @app.route('/transcript', methods=['GET'])
-    # @token_required
     def transcript():
         try:
             logger.info("Transcript endpoint called")
@@ -136,35 +135,24 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
-    # @token_required
-    def grade_conversation_endpoint(conversation_id):
+    async def grade_conversation_endpoint(conversation_id):
         try:
             logger.info(f"Grading conversation {conversation_id}")
             
-            # Get the current user email from JWT token
-            auth_header = request.headers.get('Authorization')
-            user_email = "test@example.com"  # Default for development
-            
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-                decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
-                user_email = decoded.get('email')
-
             # Grade the conversation
-            grading_result = grade_conversation(conversation_id, user_email)
-           
+            grading_result = await grade_conversation(conversation_id)
+            
             return jsonify({
                 "status": "success",
                 "message": "Conversation graded.",
-                "grading_result": json.dumps(grading_result.model_dump_json())
+                "grading_result": grading_result
             })
         except Exception as e:
             logger.error(f"Error grading conversation: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
-            
+
     # New endpoint to get user's sessions
     @app.route('/sessions', methods=['GET'])
-    # @token_required
     async def get_user_sessions():
         try:
             # Get the current user email from JWT token
@@ -204,7 +192,6 @@ def init_routes(app):
             
     # New endpoint to get grades for a user
     @app.route('/grades', methods=['GET'])
-    # @token_required
     async def get_user_grades():
         try:
             # Get the current user email from JWT token
