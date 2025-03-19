@@ -6,7 +6,7 @@ from flask import jsonify, render_template, redirect, url_for, request, session,
 from .utils.jwt import token_required
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import create_user, create_user_sync, get_signed_url, grade_conversation
+from .services import create_user, create_user_sync, get_signed_url
 from .utils.logger import logger
 from .models import Grade, Session, User
 import eventlet
