@@ -46,6 +46,7 @@ async def create_user(email):
         await user.insert()  # Directly use insert instead of save_to_db
         logger.info(f"User with email {str(email)} created successfully.")  # Ensure email is a string
         return user
+    
     except Exception as e:
         logger.error(f"Error creating user {email}: {str(e)}", exc_info=True)
         raise e
