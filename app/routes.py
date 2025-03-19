@@ -1,6 +1,7 @@
 import datetime
-import json
-import jwt
+from .utils.grading import grade_conversation
+from app.utils.jwt import token_required
+from app.utils import jwt
 from flask import jsonify, render_template, redirect, url_for, request, session, g
 from .utils.jwt import token_required
 from .utils.cas_helper import validate_service_ticket
@@ -10,6 +11,8 @@ from .utils.logger import logger
 from .models import Grade, Session, User
 import eventlet
 from beanie.exceptions import DocumentNotFound
+
+
 
 def init_routes(app):
     # Request middleware to set current session in g
@@ -37,16 +40,6 @@ def init_routes(app):
     def index():
         logger.info("Rendering index page")
         return render_template('index.html')
-    
-   
-    @app.route('/transcript', methods=['GET'])
-    def transcript():
-        try:
-            logger.info("Transcript endpoint called")
-            return get_transcript()
-        except Exception as e:
-            logger.error(f"Error in /transcript: {str(e)}")
-            return jsonify({"status": "error", "message": str(e)}), 500
      
     @app.route('/get_signed_url', methods=['GET'])
     def signed_url():
@@ -137,10 +130,14 @@ def init_routes(app):
     @app.route('/grade/<conversation_id>', methods=['POST'])
     async def grade_conversation_endpoint(conversation_id):
         try:
-            logger.info(f"Grading conversation {conversation_id}")
+           # Get the current user email from the session
+            if not g.current_session:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+        
+            user_email = g.current_session.user_email
             
             # Grade the conversation
-            grading_result = await grade_conversation(conversation_id)
+            grading_result = await grade_conversation(conversation_id, user_email)
             
             return jsonify({
                 "status": "success",

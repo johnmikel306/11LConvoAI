@@ -79,4 +79,4 @@ def extract_email_from_token(token):
         return decoded.get('email')
     except Exception as e:
         logger.error(f"Error extracting email from token: {e}")
-        return "test@example.com"  # Fallback for development
+        return None  # Fallback for development
