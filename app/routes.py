@@ -1,16 +1,13 @@
 import datetime
 from .utils.grading import grade_conversation
-from app.utils.jwt import token_required
 from app.utils import jwt
-from flask import jsonify, render_template, redirect, url_for, request, session, g
-from .utils.jwt import token_required
+import jwt
+from flask import jsonify, render_template, request, g
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import create_user, create_user_sync, get_signed_url
+from .services import create_user_sync, get_signed_url
 from .utils.logger import logger
 from .models import Grade, Session, User
-import eventlet
-from beanie.exceptions import DocumentNotFound
 
 
 
