@@ -42,9 +42,9 @@ def init_app():
     # Initialize sockets
     # init_sockets(socketio)  # Commented out for now since we're not using SocketIO
     
-    return app
+    return app, asgi_app
 
-app = init_app() # add socketio if needed
+app, asgi_app = init_app() # add socketio if needed
 
 # Export app and socketio for use in other modules
 __all__ = ['app', 'asgi_app'] # add 'socketio' if needed
