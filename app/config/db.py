@@ -40,4 +40,4 @@ async def setup_db():
     
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
-        raise
+        raise e

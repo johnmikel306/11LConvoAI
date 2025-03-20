@@ -13,7 +13,7 @@ from beanie.exceptions import DocumentNotFound
 
 def init_routes(app):
     # Request middleware to set current session in g
-    @app.before_request()
+    @app.before_request  # Remove the parentheses here
     async def load_session():
         auth_header = request.headers.get('Authorization')
         
