@@ -12,4 +12,4 @@ EXPOSE 8888
 ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
 
-CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:8888", "app:app"]
+CMD ["gunicorn", "-k", "-w", "1", "-b", "0.0.0.0:8888", "app:app"]
