@@ -16,8 +16,10 @@ def validate_service_ticket(ticket, service_url):
     params = {
         'ticket': ticket,
         'service': service_url,
-        'format': 'json',  # Ensure this matches your CAS server's expected format
+        'format': 'json'
     }
+
+    print("Tickate: \n", ticket, "CAS_SERVICE_VALIDATE_URL: \n", CAS_SERVICE_VALIDATE_URL)
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
     logger.info(f"CAS Validation Response: {response.text}")
@@ -28,10 +30,10 @@ def validate_service_ticket(ticket, service_url):
             if data.get('serviceResponse', {}).get('authenticationSuccess'):
                 return data['serviceResponse']['authenticationSuccess']['user']
         except ValueError:
-            # Fallback to XML parsing if JSON parsing fails
+       
             root = ET.fromstring(response.text)
             namespace = {'cas': 'http://www.yale.edu/tp/cas'}
             user_element = root.find('.//cas:authenticationSuccess/cas:user', namespace)
             if user_element is not None:
-                return user_element.text  # Return the user's email
-    return None  # Return None if validation fails
+                return user_element.text 
+    return None 
