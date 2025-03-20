@@ -8,7 +8,7 @@ import os
 from .services import create_user, create_user_sync, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
 from .utils.logger import logger
 from .models import Grade, Session, User
-import eventlet
+import asyncio
 from beanie.exceptions import DocumentNotFound
 
 def init_routes(app):

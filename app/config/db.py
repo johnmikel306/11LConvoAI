@@ -1,5 +1,5 @@
 import os
-import eventlet
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from dotenv import load_dotenv
@@ -45,15 +45,4 @@ async def setup_db():
         return client
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
-        raise
-
-def setup_db_sync():
-    """
-    Synchronous wrapper for setup_db using eventlet
-    """
-    try:
-        # Use eventlet to run the async setup_db function synchronously
-        return eventlet.spawn(setup_db).wait()
-    except Exception as e:
-        logger.error(f"Database sync setup failed: {str(e)}")
         raise

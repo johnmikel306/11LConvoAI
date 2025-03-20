@@ -1,5 +1,5 @@
+import asyncio
 import os
-import eventlet
 from flask import Flask
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -7,7 +7,7 @@ load_dotenv()
 
 from .sockets import init_sockets
 from .routes import init_routes
-from .config.db import setup_db_sync
+from .config.db import setup_db
 from .utils.logger import logger
 
 def init_app():
@@ -18,11 +18,11 @@ def init_app():
         raise ValueError("SECRET_KEY environment variable is required for session management.")
 
     # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')    
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='asgi')  # Use 'asgi' for asyncio
     
     # Initialize the database connection
     try:
-        setup_db_sync()
+        asyncio.run(setup_db())  # Use asyncio.run to run the async setup_db function
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")

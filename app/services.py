@@ -11,7 +11,7 @@ from flask import jsonify
 import logging
 from flask import jsonify, request, g
 from .utils.logger import logger
-import eventlet
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -86,10 +86,10 @@ async def create_user(email):
     
 def create_user_sync(email):
     """
-    Synchronous wrapper for create_user using eventlet
+    Synchronous wrapper for create_user using asyncio
     """
     try:
-        return eventlet.spawn(create_user, email).wait()
+        return asyncio.run(create_user(email))  # Use asyncio.run to run the async create_user function
     except Exception as e:
         logger.error(f"Error creating user {email}: {str(e)}")
         raise e

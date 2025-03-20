@@ -5,7 +5,7 @@ import os
 from ..services import get_user_by_email
 from flask import jsonify, request
 import jwt
-import eventlet
+import asyncio
 
 
 def token_required(f):
@@ -27,7 +27,7 @@ def token_required(f):
             if not email:
                 return jsonify({'message': 'Email not found in token'}), 401
              # Fetch the user details using the email from DB and store in current_user
-            user = get_user_by_email(email)
+            user = asyncio.run(get_user_by_email(email))  # Use asyncio.run to run the async get_user_by_email function
             if not user:
                 return jsonify({'message' : 'User not found!'}), 401
             
