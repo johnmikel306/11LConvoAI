@@ -19,4 +19,4 @@ ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
 
 # Command to run on container start
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8888", "app:asgi_app"]
+CMD ["gunicorn", "-k", "eventlet", "-w", "1", "-b", "0.0.0.0:8888", "app:app"]

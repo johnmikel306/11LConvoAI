@@ -23,10 +23,11 @@ async def setup_db():
     try:
         # Create Motor client
         client = AsyncIOMotorClient(dbURI)
+        db = client.get_database("ailp")
         
         # Initialize Beanie with ALL document models
         await init_beanie(
-            database=client.get_database("ailp"),
+            database=db,
             document_models=[
                 User,
                 CaseStudy,
@@ -35,7 +36,8 @@ async def setup_db():
                 Session
             ]
         )        
-        return client
+        return db, client  # Return the database and client objects
+    
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
         raise
