@@ -13,7 +13,7 @@ from .models import Grade, Session, User
 def init_routes(app):
     
     @app.before_request
-    async def load_session():
+    def load_session():
         auth_header = request.headers.get('Authorization')
         
         if auth_header and auth_header.startswith('Bearer '):
@@ -33,12 +33,12 @@ def init_routes(app):
             g.current_session = None
 
     @app.route('/')
-    async def index():
+    def index():
         logger.info("Rendering index page")
         return render_template('index.html')
      
     @app.route('/get_signed_url', methods=['GET'])
-    async def signed_url():
+    def signed_url():
        
         logger.info("Get signed URL endpoint called")
         url = get_signed_url()
@@ -53,7 +53,7 @@ def init_routes(app):
         return jsonify({'url': cas_login_url})
       
     @app.route('/cas/validate', methods=['POST'])
-    async def cas_validate():
+    def cas_validate():
        
         ticket = request.form['ticket']
         if not ticket:
@@ -64,7 +64,7 @@ def init_routes(app):
         service_url = "https://miva-mind.vercel.app/auth/cas/callback"
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
         user_email = validate_service_ticket(ticket, service_url)
-
+        print(user_email)
         if not user_email:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
@@ -75,12 +75,12 @@ def init_routes(app):
             'email': user_email,
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
         }, os.getenv('JWT_SECRET'))
-
+        print(token)
         return jsonify({'token': token})
     
  
     @app.route('/cas/logout')
-    async def cas_logout():
+    def cas_logout():
         
         auth_header = request.headers.get('Authorization')
         user_email = None
@@ -105,7 +105,7 @@ def init_routes(app):
     
     @app.route('/grade/<conversation_id>', methods=['POST'])
     @token_required
-    async def grade_conversation_endpoint(conversation_id):
+    def grade_conversation_endpoint(conversation_id):
 
         if not g.current_session:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
@@ -122,7 +122,7 @@ def init_routes(app):
    
         
     @app.route('/grades', methods=['GET'])
-    async def get_user_grades():
+    def get_user_grades():
        
         auth_header = request.headers.get('Authorization')
         user_email = None
