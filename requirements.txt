@@ -9,7 +9,7 @@ charset-normalizer==3.4.1
 click==8.1.8
 dnspython==2.7.0
 elevenlabs==1.52.0
-pydantic[email]==25.0.1
+pydantic[email]
 eventlet==0.39.1
 Flask==3.0.0
 Flask-PyMongo==2.3.0

@@ -5,7 +5,6 @@ import os
 from ..services import get_user_by_email
 from flask import jsonify, request
 import jwt
-import eventlet
 
 
 def token_required(f):
