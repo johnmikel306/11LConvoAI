@@ -13,3 +13,4 @@ dnspython
 requests
 httpx
 asgiref
+jinja2
