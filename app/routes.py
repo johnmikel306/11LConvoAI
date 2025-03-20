@@ -2,7 +2,7 @@ import datetime
 from .utils.grading import grade_conversation
 from app.utils.jwt import token_required
 import jwt
-from flask import jsonify, render_template, request, g
+from quart import jsonify, render_template, request, g
 from .utils.cas_helper import validate_service_ticket
 import os
 from .services import create_user_sync, get_signed_url
@@ -13,7 +13,7 @@ from beanie.exceptions import DocumentNotFound
 
 def init_routes(app):
     # Request middleware to set current session in g
-    @app.before_request
+    @app.before_request()
     async def load_session():
         auth_header = request.headers.get('Authorization')
         
@@ -34,12 +34,12 @@ def init_routes(app):
             g.current_session = None
 
     @app.route('/')
-    def index():
+    async def index():
         logger.info("Rendering index page")
         return render_template('index.html')
      
     @app.route('/get_signed_url', methods=['GET'])
-    def signed_url():
+    async def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
             url = get_signed_url()
@@ -50,7 +50,7 @@ def init_routes(app):
 
     # CAS Login Route
     @app.route('/cas/auth-url', methods=['GET'])
-    def cas_login():
+    async def cas_login():
         try:
             # Redirect to CAS login page
             service_url = "https://miva-mind.vercel.app/auth/cas/callback"
@@ -62,7 +62,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
     
     @app.route('/cas/validate', methods=['POST'])
-    def cas_validate():
+    async def cas_validate():
         try:
             # Get the Service Ticket (ST) from the query parameters
             ticket = request.form['ticket']
@@ -99,7 +99,7 @@ def init_routes(app):
     
     # CAS Logout Route
     @app.route('/cas/logout')
-    def cas_logout():
+    async def cas_logout():
         try:
             # Get the current user email from JWT token
             auth_header = request.headers.get('Authorization')
@@ -113,9 +113,9 @@ def init_routes(app):
 
             if user_email:
                 # End any active sessions for this user
-                active_session = Session.find_active_by_email(user_email)
+                active_session = await Session.find_active_by_email(user_email)
                 if active_session:
-                    Session.end_session(active_session.id)
+                    await Session.end_session(active_session.id)
                 
                 logger.info(f"User {user_email} logged out.")
                 return jsonify({"status": "success", "message": "User logged out."})

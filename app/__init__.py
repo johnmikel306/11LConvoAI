@@ -1,7 +1,7 @@
 import asyncio
 import os
 from flask import Flask
-# from flask_socketio import SocketIO
+from quart import Quart
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -13,8 +13,8 @@ from asgiref.wsgi import WsgiToAsgi
 
 def init_app():
     # Initialize Flask app
-    app = Flask(__name__)
-    asgi_app = WsgiToAsgi(app)
+    app = Quart(__name__)
+    # asgi_app = WsgiToAsgi(app)
     
     app.secret_key = os.getenv("SECRET_KEY")
     if not app.secret_key:
@@ -42,9 +42,9 @@ def init_app():
     # Initialize sockets
     # init_sockets(socketio)  # Commented out for now since we're not using SocketIO
     
-    return app, asgi_app
+    return app
 
 app, asgi_app = init_app() # add socketio if needed
 
 # Export app and socketio for use in other modules
-__all__ = ['app', 'asgi_app'] # add 'socketio' if needed
+__all__ = ['app'] # add 'socketio' if needed
