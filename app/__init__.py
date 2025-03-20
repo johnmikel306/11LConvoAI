@@ -1,5 +1,4 @@
 import os
-import eventlet
 from flask import Flask
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -22,7 +21,7 @@ def init_app():
     
     # Initialize the database connection
     try:
-        eventlet.spawn(setup_db).wait()  # Use eventlet to run the async setup_db function synchronously
+        setup_db_sync()
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")

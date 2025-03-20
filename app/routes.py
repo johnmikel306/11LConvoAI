@@ -1,6 +1,6 @@
 import datetime
 from .utils.grading import grade_conversation
-from app.utils import jwt
+from app.utils.jwt import token_required
 import jwt
 from flask import jsonify, render_template, request, g
 from .utils.cas_helper import validate_service_ticket
@@ -126,6 +126,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
+    @token_required
     async def grade_conversation_endpoint(conversation_id):
         try:
            # Get the current user email from the session

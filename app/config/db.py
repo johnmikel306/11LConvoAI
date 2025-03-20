@@ -1,3 +1,4 @@
+import asyncio
 import os
 import eventlet
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -32,7 +33,7 @@ async def setup_db():
                 User,
                 CaseStudy,
                 Grade,
-                ConversationLog,  # Added missing model
+                ConversationLog,
                 Session
             ]
         )
@@ -45,15 +46,19 @@ async def setup_db():
         return client
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
-        raise
+        raise e
 
 def setup_db_sync():
     """
     Synchronous wrapper for setup_db using eventlet
     """
     try:
-        # Use eventlet to run the async setup_db function synchronously
-        return eventlet.spawn(setup_db).wait()
+        # create a new event loop and run the coroutine
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(setup_db())
     except Exception as e:
-        logger.error(f"Database sync setup failed: {str(e)}")
-        raise
+        logger.error(f"Database connection failed in sync wrapper: {str(e)}")
+        raise e
+    finally:
+        loop.close()
