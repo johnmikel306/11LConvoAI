@@ -22,7 +22,7 @@ def init_app():
     
     # Initialize the database connection
     try:
-        asyncio.run(setup_db())  # Use asyncio.run to run the async setup_db function
+        asyncio.run(setup_db())
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")

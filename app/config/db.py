@@ -36,13 +36,7 @@ async def setup_db():
                 ConversationLog,
                 Session
             ]
-        )
-        
-        # Verify connection
-        await client.admin.command('ping')
-        count = await User.count()
-        logger.info(f"Database connected successfully. Found {count} users.")
-        
+        )        
         return client
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
