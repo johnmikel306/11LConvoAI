@@ -42,7 +42,8 @@ def init_routes(app):
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            return get_signed_url()
+            url = get_signed_url()
+            return url
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
