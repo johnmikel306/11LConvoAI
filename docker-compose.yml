@@ -6,4 +6,4 @@ services:
     ports:
       - "8888:8888"
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production
