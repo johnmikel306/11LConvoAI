@@ -1,6 +1,4 @@
-import asyncio
 import os
-import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from dotenv import load_dotenv
@@ -12,7 +10,7 @@ async def setup_db():
     load_dotenv()
 
     # Validate required environment variables
-    required_vars = ["MONGO_URI", "JWT_SECRET", "ELEVENLABS_API_KEY", "AGENT_ID"]
+    required_vars = ["MONGO_URI", "JWT_SECRET", "ELEVENLABS_API_KEY", "AGENT_ID", "GROQ_API_KEY"]
     for var in required_vars:
         if not os.getenv(var):
             raise ValueError(f"Missing required environment variable: {var}")
