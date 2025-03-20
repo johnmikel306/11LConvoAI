@@ -7,7 +7,7 @@ load_dotenv()
 
 from .sockets import init_sockets
 from .routes import init_routes
-from .config.db import setup_db_sync
+from .config.db import setup_db, setup_db_sync
 from .utils.logger import logger
 
 def init_app():
@@ -22,7 +22,7 @@ def init_app():
     
     # Initialize the database connection
     try:
-        setup_db_sync()
+        eventlet.spawn(setup_db).wait()  # Use eventlet to run the async setup_db function synchronously
         logger.info("Database connection established successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to the database: {str(e)}")
