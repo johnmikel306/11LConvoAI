@@ -10,7 +10,7 @@ import asyncio
 
 def token_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated(*args, **kwargs):        
         AUTH_HEADER = 'Authorization'
         token = None
         # jwt is passed in the request header
@@ -45,5 +45,5 @@ def token_required(f):
             }), 401
         # returns the current logged in users context to the routes
         return  f(*args, **kwargs)
-  
+        
     return decorated

@@ -123,7 +123,7 @@ class Session(Document):
     user_email: str
     conversation_id: Optional[str]
     is_active: bool = True
-    start_time: datetime = datetime.utcnow()
+    start_time: datetime = datetime.now(timezone.utc)
     end_time: Optional[datetime] = None
     transcript: Optional[List[Dict]] = []
     last_activity: Optional[datetime] = None  # Timestamp of last activity in the session

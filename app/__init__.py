@@ -1,11 +1,11 @@
 import asyncio
 import os
 from flask import Flask
-from flask_socketio import SocketIO
+# from flask_socketio import SocketIO
 from dotenv import load_dotenv
 load_dotenv()
 
-from .sockets import init_sockets
+# from .sockets import init_sockets
 from .routes import init_routes
 from .config.db import setup_db
 from .utils.logger import logger
@@ -18,7 +18,7 @@ def init_app():
         raise ValueError("SECRET_KEY environment variable is required for session management.")
 
     # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent') 
+    # socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet') 
     
     # Initialize the database connection
     try:
@@ -32,11 +32,11 @@ def init_app():
     init_routes(app)
 
     # Initialize sockets
-    init_sockets(socketio)
+    # init_sockets(socketio)  # Commented out for now since we're not using SocketIO
     
-    return app, socketio
+    return app
 
-app, socketio = init_app()
+app = init_app() # add socketio if needed
 
 # Export app and socketio for use in other modules
-__all__ = ['app', 'socketio']
+__all__ = ['app'] # add 'socketio' if needed

@@ -110,6 +110,7 @@ def init_routes(app):
                 decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
                 user_email = decoded.get('email')
             
+
             if user_email:
                 # End any active sessions for this user
                 active_session = Session.find_active_by_email(user_email)
@@ -229,3 +230,4 @@ def init_routes(app):
         except Exception as e:
             logger.error(f"Error getting user grades: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
+        

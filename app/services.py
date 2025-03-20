@@ -64,8 +64,6 @@ def create_user_sync(email):
 async def get_user_by_email(email):
     return await User.find_by_email(email)
 
-# API Endpoints
-
 # Helper function to extract email from JWT token
 def extract_email_from_token(token):
     """
