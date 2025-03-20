@@ -18,7 +18,7 @@ def init_app():
         raise ValueError("SECRET_KEY environment variable is required for session management.")
 
     # Initialize SocketIO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='asgi')  # Use 'asgi' for asyncio
+    socketio = SocketIO(app, cors_allowed_origins="*") 
     
     # Initialize the database connection
     try:
