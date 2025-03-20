@@ -3,7 +3,7 @@ services:
     name: elevenlabs-chat
     env: docker
     buildCommand: ./build.sh
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8888 app:app
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8888 --timeout 120 app:app
     envVars:
       - key: AGENT_ID
         value: ${AGENT_ID}

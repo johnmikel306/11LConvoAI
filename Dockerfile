@@ -19,4 +19,4 @@ ENV FLASK_APP=run.py
 ENV FLASK_ENV=production
 
 # Command to run on container start
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8888", "app:app"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8888", "--timeout", "120", "app:app"]
