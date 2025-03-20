@@ -38,4 +38,5 @@ wsproto==1.2.0
 pyjwt==2.10.1
 Flask[async]==3.0.0
 asgiref
-pydantic[email]
+pydantic[email]==2.2.0
+groq==0.20.0
