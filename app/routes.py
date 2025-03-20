@@ -1,11 +1,11 @@
 import datetime
-import json
+from .utils.grading import grade_conversation
+from app.utils.jwt import token_required
 import jwt
-from flask import jsonify, render_template, redirect, url_for, request, session, g
-from .utils.jwt import token_required
+from flask import jsonify, render_template, request, g
 from .utils.cas_helper import validate_service_ticket
 import os
-from .services import create_user, create_user_sync, get_transcript, start_conversation, stop_conversation, get_signed_url, grade_conversation
+from .services import create_user_sync, get_signed_url
 from .utils.logger import logger
 from .models import Grade, Session, User
 import asyncio
@@ -37,23 +37,13 @@ def init_routes(app):
     def index():
         logger.info("Rendering index page")
         return render_template('index.html')
-    
-   
-    @app.route('/transcript', methods=['GET'])
-    # @token_required
-    def transcript():
-        try:
-            logger.info("Transcript endpoint called")
-            return get_transcript()
-        except Exception as e:
-            logger.error(f"Error in /transcript: {str(e)}")
-            return jsonify({"status": "error", "message": str(e)}), 500
      
     @app.route('/get_signed_url', methods=['GET'])
     def signed_url():
         try:
             logger.info("Get signed URL endpoint called")
-            return get_signed_url()
+            url = get_signed_url()
+            return url
         except Exception as e:
             logger.error(f"Error in /get_signed_url: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -136,35 +126,29 @@ def init_routes(app):
             return jsonify({"status": "error", "message": str(e)}), 500
         
     @app.route('/grade/<conversation_id>', methods=['POST'])
-    # @token_required
-    def grade_conversation_endpoint(conversation_id):
+    @token_required
+    async def grade_conversation_endpoint(conversation_id):
         try:
-            logger.info(f"Grading conversation {conversation_id}")
+           # Get the current user email from the session
+            if not g.current_session:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+        
+            user_email = g.current_session.user_email
             
-            # Get the current user email from JWT token
-            auth_header = request.headers.get('Authorization')
-            user_email = "test@example.com"  # Default for development
-            
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-                decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
-                user_email = decoded.get('email')
-
             # Grade the conversation
-            grading_result = grade_conversation(conversation_id, user_email)
-           
+            grading_result = await grade_conversation(conversation_id, user_email)
+            
             return jsonify({
                 "status": "success",
                 "message": "Conversation graded.",
-                "grading_result": json.dumps(grading_result.model_dump_json())
+                "grading_result": grading_result
             })
         except Exception as e:
             logger.error(f"Error grading conversation: {str(e)}")
             return jsonify({"status": "error", "message": str(e)}), 500
-            
+
     # New endpoint to get user's sessions
     @app.route('/sessions', methods=['GET'])
-    # @token_required
     async def get_user_sessions():
         try:
             # Get the current user email from JWT token
@@ -204,7 +188,6 @@ def init_routes(app):
             
     # New endpoint to get grades for a user
     @app.route('/grades', methods=['GET'])
-    # @token_required
     async def get_user_grades():
         try:
             # Get the current user email from JWT token

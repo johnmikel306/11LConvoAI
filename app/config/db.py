@@ -1,3 +1,4 @@
+import asyncio
 import os
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -32,7 +33,7 @@ async def setup_db():
                 User,
                 CaseStudy,
                 Grade,
-                ConversationLog,  # Added missing model
+                ConversationLog,
                 Session
             ]
         )
