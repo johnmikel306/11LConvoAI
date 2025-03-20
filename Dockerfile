@@ -1,26 +1,18 @@
-# Docker configuration
+# Use the official Python image as a parent image
 FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies and Python packages
+# Install Python packages
 COPY requirements.txt .
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    portaudio19-dev \
-    python3-dev \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the content of the local src directory to the working directory
+# Copy the content of the local directory to the container's working directory
 COPY . .
 
-# Expose the port the app runs on
+# Expose the port the app runs on (8888)
 EXPOSE 8888
 
-# Set environment variables
-ENV FLASK_APP=run.py
-ENV FLASK_ENV=production
-
 # Command to run on container start
-CMD ["python", "run.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8888"]

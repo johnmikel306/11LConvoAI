@@ -1,49 +1,38 @@
-
-# decorator for verifying the JWT
-from asyncio.log import logger
+from fastapi import HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from functools import wraps
 import os
-from app.services import get_user_by_email
-from flask import jsonify, request
+from ..services import get_user_by_email
 import jwt
+import asyncio
 
+security = HTTPBearer()
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        AUTH_HEADER = 'Authorization'
-        token = None
-        # jwt is passed in the request header
-        if AUTH_HEADER in request.headers:
-            token = request.headers[AUTH_HEADER]
-        # return 401 if token is not passed
+def token_required(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        credentials: HTTPAuthorizationCredentials = Depends(security)
+        token = credentials.credentials
+        
         if not token:
-            return jsonify({'message' : 'Token is missing!'}), 401
-  
+            raise HTTPException(status_code=401, detail="Token is missing!")
+        
         try:
-            # decoding the payload to fetch the stored details
             data = jwt.decode(token, os.getenv('JWT_SECRET'))
             email = data.get('email')
             if not email:
-                return jsonify({'message': 'Email not found in token'}), 401
-             # Fetch the user details using the email from DB and store in current_user
-            user = get_user_by_email(email)
-            if not user:
-                return jsonify({'message' : 'User not found!'}), 401
+                raise HTTPException(status_code=401, detail="Email not found in token")
             
-            #store the user in the request context
-            request.current_user = user
-            logger.info(f"User {user.email} is authenticated")
+            user = await get_user_by_email(email)
+            if not user:
+                raise HTTPException(status_code=401, detail="User not found!")
+            
+            return await func(*args, **kwargs)
         except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
+            raise HTTPException(status_code=401, detail="Token has expired!")
         except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
+            raise HTTPException(status_code=401, detail="Token is invalid!")
         except Exception as e:
-            logger.error(f"An error occur validating the token : {e}")
-            return jsonify({
-                'message': 'Token is invalid!'
-            }), 401
-        # returns the current logged in users context to the routes
-        return  f(*args, **kwargs)
-  
-    return decorated
+            raise HTTPException(status_code=401, detail="Token is invalid!")
+    
+    return wrapper

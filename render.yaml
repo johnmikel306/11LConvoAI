@@ -3,7 +3,7 @@ services:
     name: elevenlabs-chat
     env: docker
     buildCommand: ./build.sh
-    startCommand: gunicorn --worker-class eventlet -w 1 app:app
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8888
     envVars:
       - key: AGENT_ID
         value: ${AGENT_ID}

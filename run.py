@@ -1,7 +1,7 @@
-import eventlet
-eventlet.monkey_patch()
+from fastapi import FastAPI
+from app.routes import init_routes
 
-from app import app, socketio
+app = FastAPI()
 
-if __name__ == '__main__':
-    socketio.run(app, debug=True, host='0.0.0.0', port=8888)
+# Initialize routes
+init_routes(app)

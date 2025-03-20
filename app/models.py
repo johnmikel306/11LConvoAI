@@ -1,98 +1,126 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
-from typing import Optional
-from pydantic import BaseModel
-from typing import Dict, List
+from typing import Optional, Dict, List
+from pydantic import BaseModel, Field, EmailStr
+
+class PerformanceItem(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str = Field(..., min_length=1)
 
 class User(Document):
     id: PydanticObjectId = None
     name: str
-    email: str
+    email: EmailStr
     role: str
     date_added: Optional[datetime]
     date_updated: Optional[datetime]
     
     class Meta:
-       collection = "users" # Collection name in MongoDB
+       collection = "users"
 
     @classmethod
     async def find_by_email(cls, email: str) -> Optional["User"]:
-        """
-        Find a user by email in the database.
-        """
-        return await cls.find_one({cls.email == email})
+        return await cls.find_one({"email": email})
     
-    async def save_to_db(self):
-        """
-        Save the user to the database.
-        """
-        existing_user = await User.find_by_email(self.email)
-        if existing_user:
-            return None # User already exists
-        
-        await self.insert()
-        return self
-    
+    async def create(self, **kwargs) -> "User":
+        user = await self.insert(**kwargs)
+        return user
+
 class CaseStudy(Document): 
     title: str
     description: str
     agent_id: Optional[str]
     conversation_id: Optional[str]
-    transcript: Optional[List[Dict]]  # Store the transcript here
+    transcript: Optional[List[Dict]]
 
     class Meta:
-        collection = "case_studies"  # Collection name in MongoDB
+        collection = "case_studies"
 
 class Grade(Document):
     user: User
     case_study: CaseStudy
-    final_score: int
-    individual_scores: Dict[str, int]  # e.g., {"Critical Thinking": 90, "Communication": 85}
-    performance_summary: Dict[str, List[str]]  # e.g., {"Strengths": [...], "Weaknesses": [...]}
+    final_score: int = Field(..., ge=0, le=100)
+    individual_scores: Dict[str, int] = Field(...)
+    performance_summary: Dict[str, List[PerformanceItem]]
     conversation_id: str
     timestamp: datetime
 
     class Meta:
-        collection = "grades"  # Collection name in MongoDB
+        collection = "grades"
+
+    @classmethod
+    async def create_grade(
+        cls,
+        user: User,
+        case_study: CaseStudy,
+        conversation_id: str,
+        final_score: int,
+        individual_scores: Dict[str, int],
+        performance_summary: Dict[str, List[PerformanceItem]]
+    ) -> "Grade":
+        grade = cls(
+            user=user,
+            case_study=case_study,
+            conversation_id=conversation_id,
+            final_score=final_score,
+            individual_scores=individual_scores,
+            performance_summary=performance_summary,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await grade.insert()
+        return grade
+
+    @classmethod
+    async def find_by_conversation_id(cls, conversation_id: str) -> Optional["Grade"]:
+        return await cls.find_one({"conversation_id": conversation_id})
 
 class ConversationLog(Document):
     user: User
     conversation_id: str
-    transcript: list  # List of chat messages
+    transcript: list
     timestamp: datetime
 
     class Meta:
-        collection = "conversation_logs"  # Collection name in MongoDB
+        collection = "conversation_logs"
 
-
+    @classmethod
+    async def create_log(
+        cls,
+        user: User,
+        conversation_id: str,
+        transcript: List[Dict]
+    ) -> "ConversationLog":
+        log = cls(
+            user=user,
+            conversation_id=conversation_id,
+            transcript=transcript,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log.insert()
+        return log
 
 class Session(Document):
     user_email: str
     conversation_id: Optional[str]
     is_active: bool = True
-    start_time: datetime = datetime.utcnow()
+    start_time: datetime = datetime.now(timezone.utc)
     end_time: Optional[datetime] = None
     transcript: Optional[List[Dict]] = []
+    last_activity: Optional[datetime] = None
 
     class Meta:
-        collection = "sessions"  # Collection name in MongoDB
+        collection = "sessions"
 
     @classmethod
     async def find_active_by_email(cls, email: str) -> Optional["Session"]:
-        """
-        Find an active session for a user by email.
-        """
-        return await cls.find_one({cls.user_email == email, cls.is_active == True})
+        return await cls.find_one({"user_email": email, "is_active": True})
     
     @classmethod
     async def end_session(cls, session_id: PydanticObjectId):
-        """
-        End a session by setting is_active to False and updating end_time.
-        """
         session = await cls.get(session_id)
         if session:
             session.is_active = False
-            session.end_time = datetime.utcnow()
+            session.end_time = datetime.now(timezone.utc)
             await session.save()
             return session
         return None
