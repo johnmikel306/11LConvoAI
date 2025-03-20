@@ -21,12 +21,12 @@ def init_app():
     # socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet') 
     
     # Initialize the database connection
-    try:
-        asyncio.run(setup_db())
+    async def init_db():
+        await setup_db()
         logger.info("Database connection established successfully.")
-    except Exception as e:
-        logger.error(f"Failed to connect to the database: {str(e)}")
-        raise e
+
+    loop = asyncio.get_event_loop()
+    loop.create_task(init_db())
     
     # Initialize routes
     init_routes(app)
