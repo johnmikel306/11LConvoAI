@@ -31,11 +31,12 @@ def infer(formatted_transcript):
         2. A final score (out of 100).
         3. Individual scores for each criterion (out of 100).
         4. A performance summary with strengths and weaknesses, each with a title and description.
-
+        5. Be strict in grading the student's performance.
+        
         Transcript:
         {formatted_transcript}
 
-        Return the response in JSON format with the following structure:
+        Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
             "overall_summary": "Brief overview of the student's performance",
             "final_score": 85,
@@ -54,6 +55,7 @@ def infer(formatted_transcript):
             }}
         }}
         CRITICAL INSTRUCTION:
+        Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
         No any additional text apart from the json object. 
         Do not add any ```json  or ```, return just the json object.
         """
@@ -65,7 +67,7 @@ def infer(formatted_transcript):
                 "content": grading_prompt
             }
         ],
-        temperature=1,
+        temperature=0.5,
         max_completion_tokens=1024,
         top_p=1,
         stream=False,
