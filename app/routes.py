@@ -135,7 +135,7 @@ def init_routes(app):
         if not user_email:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
         
-        user = User.find_by_email("alaminibrahim433@gmail.com")
+        user = User.find_by_email(user_email)
         if not user:
             return jsonify({"status": "error", "message": "User not found"}), 404
             
