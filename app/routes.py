@@ -64,17 +64,17 @@ def init_routes(app):
         service_url = "https://miva-mind.vercel.app/auth/cas/callback"
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
         user_email = validate_service_ticket(ticket, service_url)
-        print(user_email)
+        
         if not user_email:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
         
         create_user(user_email)
-        
+        print(user_email)
         token = jwt.encode({
             'email': user_email,
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
-        }, os.getenv('JWT_SECRET'))
+        }, os.getenv('JWT_SECRET'), algorithm='HS256')
         print(token)
         return jsonify({'token': token})
     

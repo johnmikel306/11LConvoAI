@@ -22,7 +22,7 @@ def token_required(f):
         # try:
         # decoding the payload to fetch the stored details
         print("Token: \n", token)
-        data = jwt.decode(token, os.getenv('JWT_SECRET'))
+        data = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
         email = data.get('email')
         if not email:
             return jsonify({'message': 'Email not found in token'}), 401
