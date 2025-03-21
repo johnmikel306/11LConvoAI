@@ -107,12 +107,10 @@ def init_routes(app):
     @token_required
     def grade_conversation_endpoint(conversation_id):
 
-        print("g info: \n", g.user_info)
-
-        if not g.user_info:
+        if not g.data:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
     
-        user_email = g.user_info.email
+        user_email = g.data.email
        
         grading_result = grade_conversation(conversation_id, user_email)
         
