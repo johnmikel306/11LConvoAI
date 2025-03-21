@@ -49,8 +49,8 @@ def create_user(email):
 
        
    
-async def get_user_by_email(email):
-    return await User.find_by_email(email)
+def get_user_by_email(email):
+    return User.find_by_email(email)
 
 
 def extract_email_from_token(token):

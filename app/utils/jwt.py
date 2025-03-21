@@ -12,17 +12,19 @@ def token_required(f):
     def decorated(*args, **kwargs):        
         AUTH_HEADER = 'Authorization'
         token = None
-        # jwt is passed in the request header
+      
         if AUTH_HEADER in request.headers:
             token = request.headers[AUTH_HEADER]
-        # return 401 if token is not passed
+      
         if not token:
             return jsonify({'message' : 'Token is missing!'}), 401
   
         # try:
-        # decoding the payload to fetch the stored details
+        if token.startswith('Bearer '):
+            token = token.replace('Bearer ', '', 1)
+       
         print("Token: \n", token)
-        data = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
+        data = jwt.decode(token.strip(), os.getenv('JWT_SECRET'), algorithms=['HS256'])
         email = data.get('email')
         if not email:
             return jsonify({'message': 'Email not found in token'}), 401
@@ -32,7 +34,7 @@ def token_required(f):
         if not user:
             return jsonify({'message' : 'User not found!'}), 401
         
-        #store the user in the request context
+    
         request.current_user = user
         logger.info(f"User {user.email} is authenticated")
         # except jwt.ExpiredSignatureError:
