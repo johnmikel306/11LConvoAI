@@ -30,6 +30,7 @@ def infer(formatted_transcript):
         2. A final score (intgervalue between 0 and 100).
         3. Individual scores for each criterion (integervalue between 0 and 100).
         4. A performance summary with 3 strengths and 3 weaknesses, each with a title and description.
+        5. Be strict in grading the student's performance.
 
         Transcript:
         {formatted_transcript}
@@ -45,19 +46,16 @@ def infer(formatted_transcript):
             }},
             "performance_summary": {{
                 "strengths": [
-                    {{"title": "Clear communication", "description": "The student's response was easy to understand and well-structured."}},
-                    {{"title": "Responsive to user input", "description": "The student engaged with the user's query and attempted to provide relevant information."}},
-                    {{"title": "Demonstrated basic understanding", "description": "The student showed a basic grasp of the task and attempted to provide helpful tips."}}
+                    {{"title": "Clear communication", "description": "The student's response was easy to understand and well-structured."}}
                 ],
                 "weaknesses": [
-                    {{"title": "Lack of critical thinking", "description": "The student failed to demonstrate deep analytical thinking and logical reasoning in their response."}},
-                    {{"title": "Limited comprehension", "description": "The student's understanding of the task was limited, and they did not fully address the user's query."}},
-                    {{"title": "Insufficient depth in response", "description": "The student's response was superficial and did not provide meaningful insights or suggestions."}}
+                    {{"title": "Lack of critical thinking", "description": "The student failed to demonstrate deep analytical thinking and logical reasoning in their response."}}
                 ]
             }}
         }}
 
         CRITICAL INSTRUCTION:
+        Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
         No any additional text apart from the json object. 
         Do not add any ```json  or ```, return just the json object.
         """
@@ -111,7 +109,7 @@ def grade_conversation(conversation_id: str, user_email: str):
     
     Grade.create_grade(
         user=user,
-        case_study=CaseStudy.objects(conversation_id=conversation_id).first(),
+        case_study=CaseStudy,
         conversation_id=conversation_id,
         final_score=grading_data['final_score'],
         individual_scores=grading_data['individual_scores'],
