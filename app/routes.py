@@ -25,12 +25,12 @@ def init_routes(app):
                 
             
                 active_session = Session.find_active_by_email(user_email)
-                g.current_session = active_session
+                g.user_info = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
-                g.current_session = None
+                g.user_info = None
         else:
-            g.current_session = None
+            g.user_info = None
 
     @app.route('/')
     def index():
@@ -107,10 +107,12 @@ def init_routes(app):
     @token_required
     def grade_conversation_endpoint(conversation_id):
 
-        if not g.current_session:
+        print("g info: \n", g.user_info)
+
+        if not g.user_info:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
     
-        user_email = g.current_session.user_email
+        user_email = g.user_info.email
        
         grading_result = grade_conversation(conversation_id, user_email)
         

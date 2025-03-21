@@ -1,11 +1,11 @@
-# decorator for verifying the JWT
+from app.models import User
 from ..utils.logger import logger
 from functools import wraps
 import os
-from ..services import get_user_by_email
-from flask import jsonify, request
-import jwt
 
+from flask import jsonify, request, g
+import jwt
+from contextlib import contextmanager
 
 def token_required(f):
     @wraps(f)
@@ -24,15 +24,16 @@ def token_required(f):
             token = token.replace('Bearer ', '', 1)
        
         print("Token: \n", token)
-        data = jwt.decode(token.strip(), os.getenv('JWT_SECRET'), algorithms=['HS256'])
+        data = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
         email = data.get('email')
         if not email:
             return jsonify({'message': 'Email not found in token'}), 401
         print("Data: \n", data) 
         print("Data: \n", email)   
-        user = get_user_by_email(email)  
-        if not user:
-            return jsonify({'message' : 'User not found!'}), 401
+        user = User.find_by_email(email) 
+        
+        # if not user:
+        #     return jsonify({'message' : 'User not found!'}), 401
         
     
         request.current_user = user
@@ -47,6 +48,17 @@ def token_required(f):
         #         'message': 'Token is invalid!'
         #     }), 401
         # # returns the current logged in users context to the routes
-        return  f(*args, **kwargs)
+        with token_data_context(user):
+            return f( *args, **kwargs)
         
     return decorated
+
+
+
+@contextmanager
+def token_data_context(user_info):
+    try:
+        g.data = user_info
+        yield
+    finally:
+        del g.data

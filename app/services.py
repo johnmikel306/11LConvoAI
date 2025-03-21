@@ -47,11 +47,6 @@ def create_user(email):
     return user
     
 
-       
-   
-def get_user_by_email(email):
-    return User.find_by_email(email)
-
 
 def extract_email_from_token(token):
     """
