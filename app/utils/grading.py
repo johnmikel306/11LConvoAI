@@ -40,9 +40,9 @@ def infer(formatted_transcript):
             "overall_summary": "Brief overview of the student's performance",
             "final_score": 85,
             "individual_scores": {{
-                "Critical Thinking": 90,
-                "Communication": 80,
-                "Comprehension": 85
+                "critical_thinking": 90,
+                "communication": 80,
+                "comprehension": 85
             }},
             "performance_summary": {{
                 "strengths": [
