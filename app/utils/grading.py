@@ -108,16 +108,6 @@ def grade_conversation(conversation_id: str, user_email: str):
     )
 
     grading_response = infer(formatted_transcript)
-    grading_data = json.loads(grading_response)
-    
-    Grade.create_grade(
-        user=user,
-        case_study=CaseStudy,
-        conversation_id=conversation_id,
-        final_score=grading_data['final_score'],
-        individual_scores=grading_data['individual_scores'],
-        performance_summary=grading_data['performance_summary']
-    )
    
     return grading_response
     
