@@ -31,7 +31,6 @@ def infer(formatted_transcript):
         3. Individual scores for each criterion (integervalue between 0 and 100).
         4. A performance summary with 3 strengths and 3 weaknesses, each with a title and description.
         5. Be strict in grading the student's performance.
-                5. Be strict in grading the student's performance.
 
         Transcript:
         {formatted_transcript}
