@@ -4,7 +4,7 @@ from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel, Field
 import os
 
-from app.models import ConversationLog, User
+from app.models import ConversationLog, User, CaseStudy, Grade
 from ..utils.logger import logger
 
 
@@ -19,7 +19,6 @@ def infer(formatted_transcript):
     """
     Grade the conversation transcript using the Groq API.
     """
- 
     grading_prompt = f"""
         You are a grading assistant for MBA students. Evaluate the following conversation transcript based on these criteria:
         1. **Critical Thinking**: Did the student demonstrate analytical depth and logical reasoning?
@@ -28,33 +27,37 @@ def infer(formatted_transcript):
 
         Provide:
         1. An overall summary of the student's performance.
-        2. A final score (out of 100).
-        3. Individual scores for each criterion (out of 100).
-        4. A performance summary with strengths and weaknesses, each with a title and description.
+        2. A final score (intgervalue between 0 and 100).
+        3. Individual scores for each criterion (integervalue between 0 and 100).
+        4. A performance summary with 3 strengths and 3 weaknesses, each with a title and description.
         5. Be strict in grading the student's performance.
-        
+                5. Be strict in grading the student's performance.
+
         Transcript:
         {formatted_transcript}
 
         Return the response in JSON format with the following structure replacing the example values with your evaluation:
+        Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
-            "overall_summary": "Brief overview of the student's performance",
-            "final_score": 85,
+            "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
+            "final_score": 60,
             "individual_scores": {{
-                "critical_thinking": 90,
+                "critical_thinking": 40,
                 "communication": 80,
-                "comprehension": 85
+                "comprehension": 50
             }},
             "performance_summary": {{
                 "strengths": [
-                    {{"title": "Strong analytical skills", "description": "The student demonstrated excellent ability to analyze complex situations."}},
+                    {{"title": "Clear communication", "description": "The student's response was easy to understand and well-structured."}}
                 ],
                 "weaknesses": [
-                    {{"title": "Room for improvement in communication", "description": "The student could enhance clarity in expressing ideas."}},
+                    {{"title": "Lack of critical thinking", "description": "The student failed to demonstrate deep analytical thinking and logical reasoning in their response."}}
                 ]
             }}
         }}
+
         CRITICAL INSTRUCTION:
+        Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
         Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
         No any additional text apart from the json object. 
         Do not add any ```json  or ```, return just the json object.
@@ -68,12 +71,12 @@ def infer(formatted_transcript):
             }
         ],
         temperature=0.5,
+        temperature=0.5,
         max_completion_tokens=1024,
         top_p=1,
         stream=False,
         stop=None,
     )
-
     return completion.choices[0].message.content
 
 
@@ -93,7 +96,6 @@ def grade_conversation(conversation_id: str, user_email: str):
             "message": message.message
         })
     
-    
     user = User.find_by_email(user_email)
     
     if not user:
@@ -106,8 +108,17 @@ def grade_conversation(conversation_id: str, user_email: str):
         transcript=formatted_transcript
     )
 
-  
     grading_response = infer(formatted_transcript)
+    grading_data = json.loads(grading_response)
+    
+    Grade.create_grade(
+        user=user,
+        case_study=CaseStudy,
+        conversation_id=conversation_id,
+        final_score=grading_data['final_score'],
+        individual_scores=grading_data['individual_scores'],
+        performance_summary=grading_data['performance_summary']
+    )
    
     return grading_response
     
