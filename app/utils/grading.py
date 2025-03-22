@@ -36,7 +36,6 @@ def infer(formatted_transcript):
         {formatted_transcript}
 
         Return the response in JSON format with the following structure replacing the example values with your evaluation:
-        Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
             "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
             "final_score": 60,
@@ -69,7 +68,6 @@ def infer(formatted_transcript):
                 "content": grading_prompt
             }
         ],
-        temperature=0.5,
         temperature=0.5,
         max_completion_tokens=1024,
         top_p=1,
@@ -108,6 +106,18 @@ def grade_conversation(conversation_id: str, user_email: str):
     )
 
     grading_response = infer(formatted_transcript)
+    grading_data = json.loads(grading_response)
+
+    case_study = CaseStudy.find_by_conversation_id(conversation_id)
+
+    Grade.create_grade(
+        user=user,
+        case_study=case_study,
+        conversation_id=conversation_id,
+        final_score=grading_data['final_score'],
+        individual_scores=grading_data['individual_scores'],
+        performance_summary=grading_data['performance_summary']
+    )
    
     return grading_response
     
