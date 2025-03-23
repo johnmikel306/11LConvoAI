@@ -70,7 +70,6 @@ def infer(formatted_transcript):
             }
         ],
         temperature=0.5,
-        temperature=0.5,
         max_completion_tokens=1024,
         top_p=1,
         stream=False,
