@@ -1,4 +1,5 @@
 import json
+import time
 from typing import List, Dict
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
@@ -87,7 +88,13 @@ def grade_conversation(conversation_id: str, user_email: str):
         return graded_result.to_json()
  
     client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-    conversation = client.conversational_ai.get_conversation(conversation_id)
+    try:
+        conversation = client.conversational_ai.get_conversation(conversation_id)
+    except:
+        print("sleeeepinggg.......", conversation_id)
+        time.sleep(10)
+        conversation = client.conversational_ai.get_conversation(conversation_id)
+
     transcript = conversation.transcript
     
     formatted_transcript = []
