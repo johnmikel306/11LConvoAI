@@ -61,7 +61,6 @@ def infer(formatted_transcript):
         Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
         Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
         No any additional text apart from the json object. 
-        Do not add any ```json  or ```, return just the json object.
         """
     completion = groq_client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -71,6 +70,7 @@ def infer(formatted_transcript):
                 "content": grading_prompt
             }
         ],
+        response_format={"type": "json_object"},
         temperature=0.5,
         max_completion_tokens=1024,
         top_p=1,
