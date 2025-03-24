@@ -1,4 +1,6 @@
 import datetime
+
+from dotenv import load_dotenv
 from .utils.grading import grade_conversation
 from app.utils.jwt import token_required
 import jwt
@@ -9,6 +11,8 @@ from .services import create_user, get_signed_url
 from .utils.logger import logger
 from .models import Grade, Session, User
 
+
+load_dotenv()
 
 def init_routes(app):
     
@@ -109,15 +113,14 @@ def init_routes(app):
 
         if not g.data:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
-    
+      
         user_email = g.data.email
-       
         grading_result = grade_conversation(conversation_id, user_email)
         
         return jsonify({
             "status": "success",
             "message": "Conversation graded.",
-            "grading_result": grading_result
+            "grading_result": str(grading_result)
         })
    
         
@@ -135,7 +138,7 @@ def init_routes(app):
         if not user_email:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
         
-        user = User.find_by_email("alaminibrahim433@gmail.com")
+        user = User.find_by_email(user_email)
         if not user:
             return jsonify({"status": "error", "message": "User not found"}), 404
             
