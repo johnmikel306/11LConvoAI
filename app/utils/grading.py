@@ -96,7 +96,12 @@ def grade_conversation(conversation_id: str, user_email: str):
     except:
         logger.info("sleeeepinggg.......  " +  conversation_id)
         time.sleep(10)
-        conversation = client.conversational_ai.get_conversation(conversation_id)
+        try:
+            conversation = client.conversational_ai.get_conversation(conversation_id)
+        except:
+            logger.info("sleeeepinggg even moreeeeeeeeee.......  " +  conversation_id)
+            time.sleep(15)
+            conversation = client.conversational_ai.get_conversation(conversation_id)
 
     transcript = conversation.transcript
     
