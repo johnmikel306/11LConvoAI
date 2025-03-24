@@ -1,11 +1,12 @@
 import asyncio
 import os
 import threading
+from dotenv import load_dotenv
 from flask import Flask
 from .routes import init_routes
 from .config.db import setup_db
 
-
+load_dotenv()
 
 def init_app():
     
