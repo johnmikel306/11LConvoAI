@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 import os
 
 from app.models import ConversationLog, User, CaseStudy, Grade
+from app.utils.perser import extract_json
 from ..utils.logger import logger
 
 load_dotenv()
@@ -117,8 +118,8 @@ def grade_conversation(conversation_id: str, user_email: str):
         grading_result = json.loads(grading_response)
     except:
         print(grading_response)
-        return {"error": "the llm generated a bad response, please upgrade to a much better llm"}
-
+        grading_result = next(extract_json(grading_response))
+        
     Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result['final_score']), individual_scores=grading_result['individual_scores'], performance_summary=grading_result['performance_summary'])
     
     return grading_response
