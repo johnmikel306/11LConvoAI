@@ -39,7 +39,13 @@ def infer(formatted_transcript):
         Transcript:
         {formatted_transcript}
 
-        Return the response in JSON format with the following structure replacing the example values with your evaluation:
+        CRITICAL INSTRUCTION: \n
+        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
+        Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
+        
+
+        Return the response in JSON format with the following structure replacing the example values with your evaluation. you must generate a valid json in the below format, No any additional text apart from the json object.\n
+        Hare is teh format to generate as your response:\n
         {{
             "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
             "final_score": 60,
@@ -58,10 +64,7 @@ def infer(formatted_transcript):
             }}
         }}
 
-        CRITICAL INSTRUCTION: \n
-        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
-        Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
-        No any additional text apart from the json object. 
+        
         """
     completion = groq_client.chat.completions.create(
         model="qwen-2.5-32b",
@@ -125,5 +128,5 @@ def grade_conversation(conversation_id: str, user_email: str):
         
     Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result["final_score"]), individual_scores=grading_result["individual_scores"], performance_summary=grading_result["performance_summary"])
     
-    return grading_response
+    return grading_result
     
