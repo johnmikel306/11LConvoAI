@@ -108,7 +108,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": "No user in session."}), 400
     
     @app.route('/grade/<conversation_id>', methods=['POST'])
-    # @token_required
+    @token_required
     def grade_conversation_endpoint(conversation_id):
 
         if not g.data:
