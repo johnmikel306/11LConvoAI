@@ -1,11 +1,16 @@
 # app/utils/cas_helper.py
 
+from dotenv import load_dotenv
 import requests
 from xml.etree import ElementTree as ET
 from flask import url_for
 import os
 
 from ..utils.logger import logger
+
+
+load_dotenv() 
+
 
 CAS_SERVICE_VALIDATE_URL = os.getenv('CAS_SERVICE_VALIDATE_URL')
 

@@ -34,14 +34,14 @@ class User(Document):
         """
         return cls.objects(email=email).first()
     
-    def create(self, **kwargs) -> "User":
+    @classmethod 
+    def create(cls, **kwargs) -> "User":
         """
         Create a new user and save it to the database.
         """
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        self.save()
-        return self
+        user = cls(**kwargs) 
+        user.save()  
+        return user
 
 class CaseStudy(Document): 
     title = StringField(required=True)

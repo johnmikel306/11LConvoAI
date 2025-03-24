@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from .models import CaseStudy, ConversationLog, User, Session, Grade
 import os
 from elevenlabs.client import ElevenLabs
@@ -10,7 +11,7 @@ import logging
 from .utils.logger import logger
 
 
-
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -1,4 +1,6 @@
 import datetime
+
+from dotenv import load_dotenv
 from .utils.grading import grade_conversation
 from app.utils.jwt import token_required
 import jwt
@@ -9,6 +11,8 @@ from .services import create_user, get_signed_url
 from .utils.logger import logger
 from .models import Grade, Session, User
 
+
+load_dotenv()
 
 def init_routes(app):
     
@@ -111,7 +115,6 @@ def init_routes(app):
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
     
         user_email = g.data.email
-       
         grading_result = grade_conversation(conversation_id, user_email)
         
         return jsonify({

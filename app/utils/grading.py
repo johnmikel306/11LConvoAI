@@ -1,5 +1,6 @@
 import json
 from typing import List, Dict
+from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 from pydantic import BaseModel, Field
 import os
@@ -7,6 +8,7 @@ import os
 from app.models import ConversationLog, User, CaseStudy, Grade
 from ..utils.logger import logger
 
+load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
@@ -97,7 +99,7 @@ def grade_conversation(conversation_id: str, user_email: str):
     user = User.find_by_email(user_email)
     
     if not user:
-        user = User.create(email=user_email)
+        user = User.create(name=user_email.split("@")[0], email=user_email, role="student")
         logger.info(f"Created user: {user}")
 
     ConversationLog.create_log(
@@ -107,6 +109,5 @@ def grade_conversation(conversation_id: str, user_email: str):
     )
 
     grading_response = infer(formatted_transcript)
-   
     return grading_response
     
