@@ -24,9 +24,9 @@ def infer(formatted_transcript):
     """
     grading_prompt = f"""
         You are a grading assistant for MBA students. Evaluate the following conversation transcript based on these criteria:
-        1. **Critical Thinking**: Did the student demonstrate analytical depth and logical reasoning?
-        2. **Communication**: Was the student's response clear, coherent, and well-structured?
-        3. **Comprehension**: Did the student understand the case and respond appropriately?
+        1. Critical Thinking: Did the student demonstrate analytical depth and logical reasoning?
+        2. Communication: Was the student's response clear, coherent, and well-structured?
+        3. Comprehension: Did the student understand the case and respond appropriately?
 
         Provide:
         1. An overall summary of the student's performance.
@@ -63,7 +63,7 @@ def infer(formatted_transcript):
         No any additional text apart from the json object. 
         """
     completion = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen-2.5-32b",
         messages=[
             {
                 "role": "user",
@@ -71,11 +71,8 @@ def infer(formatted_transcript):
             }
         ],
         response_format={"type": "json_object"},
-        temperature=0.5,
-        max_completion_tokens=1024,
-        top_p=1,
-        stream=False,
-        stop=None,
+        temperature=0.6,
+       
     )
     return completion.choices[0].message.content
 
