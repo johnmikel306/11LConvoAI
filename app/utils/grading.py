@@ -95,7 +95,7 @@ def grade_conversation(conversation_id: str, user_email: str):
         conversation = client.conversational_ai.get_conversation(conversation_id)
     except:
         logger.info("sleeeepinggg.......  " +  conversation_id)
-        time.sleep(10)
+        time.sleep(15)
         try:
             conversation = client.conversational_ai.get_conversation(conversation_id)
         except:
