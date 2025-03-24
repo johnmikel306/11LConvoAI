@@ -128,5 +128,5 @@ def grade_conversation(conversation_id: str, user_email: str):
         
     Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result["final_score"]), individual_scores=grading_result["individual_scores"], performance_summary=grading_result["performance_summary"])
     
-    return grading_result
+    return grading_response
     

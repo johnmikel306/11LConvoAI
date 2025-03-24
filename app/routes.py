@@ -120,7 +120,7 @@ def init_routes(app):
         return jsonify({
             "status": "success",
             "message": "Conversation graded.",
-            "grading_result": grading_result
+            "grading_result": str(grading_result)
         })
    
         
