@@ -1,4 +1,5 @@
 import json
+import time
 from typing import List, Dict
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
@@ -24,9 +25,9 @@ def infer(formatted_transcript):
     """
     grading_prompt = f"""
         You are a grading assistant for MBA students. Evaluate the following conversation transcript based on these criteria:
-        1. **Critical Thinking**: Did the student demonstrate analytical depth and logical reasoning?
-        2. **Communication**: Was the student's response clear, coherent, and well-structured?
-        3. **Comprehension**: Did the student understand the case and respond appropriately?
+        1. Critical Thinking: Did the student demonstrate analytical depth and logical reasoning?
+        2. Communication: Was the student's response clear, coherent, and well-structured?
+        3. Comprehension: Did the student understand the case and respond appropriately?
 
         Provide:
         1. An overall summary of the student's performance.
@@ -38,8 +39,13 @@ def infer(formatted_transcript):
         Transcript:
         {formatted_transcript}
 
-        Return the response in JSON format with the following structure replacing the example values with your evaluation:
-        Return the response in JSON format with the following structure replacing the example values with your evaluation:
+        CRITICAL INSTRUCTION: \n
+        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
+        Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
+        
+
+        Return the response in JSON format with the following structure replacing the example values with your evaluation. you must generate a valid json in the below format, No any additional text apart from the json object.\n
+        Hare is teh format to generate as your response:\n
         {{
             "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
             "final_score": 60,
@@ -58,25 +64,19 @@ def infer(formatted_transcript):
             }}
         }}
 
-        CRITICAL INSTRUCTION:\n
-        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. 
-        Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
-        No any additional text apart from the json object. 
-        Do not add any ```json  or ```, return just the json object.
+        
         """
     completion = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen-2.5-32b",
         messages=[
             {
                 "role": "user",
                 "content": grading_prompt
             }
         ],
-        temperature=0.5,
-        max_completion_tokens=1024,
-        top_p=1,
-        stream=False,
-        stop=None,
+        response_format={"type": "json_object"},
+        temperature=0.6,
+       
     )
     return completion.choices[0].message.content
 
@@ -91,7 +91,18 @@ def grade_conversation(conversation_id: str, user_email: str):
         return graded_result.to_json()
  
     client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-    conversation = client.conversational_ai.get_conversation(conversation_id)
+    try:
+        conversation = client.conversational_ai.get_conversation(conversation_id)
+    except:
+        logger.info("sleeeepinggg.......  " +  conversation_id)
+        time.sleep(10)
+        try:
+            conversation = client.conversational_ai.get_conversation(conversation_id)
+        except:
+            logger.info("sleeeepinggg even moreeeeeeeeee.......  " +  conversation_id)
+            time.sleep(15)
+            conversation = client.conversational_ai.get_conversation(conversation_id)
+
     transcript = conversation.transcript
     
     formatted_transcript = []
@@ -120,7 +131,7 @@ def grade_conversation(conversation_id: str, user_email: str):
         print(grading_response)
         grading_result = next(extract_json(grading_response))
         
-    Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result['final_score']), individual_scores=grading_result['individual_scores'], performance_summary=grading_result['performance_summary'])
+    Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result["final_score"]), individual_scores=grading_result["individual_scores"], performance_summary=grading_result["performance_summary"])
     
     return grading_response
     
