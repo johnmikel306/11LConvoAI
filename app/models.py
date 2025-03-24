@@ -54,7 +54,7 @@ class CaseStudy(Document):
 
 class Grade(Document):
     user = ReferenceField(User, required=True)
-    case_study = ReferenceField(CaseStudy, required=True)
+    case_study = ReferenceField(CaseStudy, required=False)
     final_score = IntField(required=True, min_value=0, max_value=100)
     individual_scores = DictField(required=True)
     performance_summary = DictField(field=ListField(EmbeddedDocumentField(PerformanceItemDocument)))
@@ -67,11 +67,11 @@ class Grade(Document):
     def create_grade(
         cls,
         user: User,
-        case_study: CaseStudy,
         conversation_id: str,
         final_score: int,
         individual_scores: Dict[str, int],
-        performance_summary: Dict[str, List[dict]]
+        performance_summary: Dict[str, List[dict]],
+        case_study: CaseStudy = None,
     ) -> "Grade":
         """
         Create and save a new grade entry.

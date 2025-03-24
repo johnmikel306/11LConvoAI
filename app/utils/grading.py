@@ -84,6 +84,10 @@ def grade_conversation(conversation_id: str, user_email: str):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
+
+    graded_result = Grade.find_by_conversation_id(conversation_id)
+    if graded_result:
+        return graded_result.to_json()
  
     client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
     conversation = client.conversational_ai.get_conversation(conversation_id)
@@ -107,7 +111,15 @@ def grade_conversation(conversation_id: str, user_email: str):
         conversation_id=conversation_id,
         transcript=formatted_transcript
     )
-
     grading_response = infer(formatted_transcript)
+
+    try:
+        grading_result = json.loads(grading_response)
+    except:
+        print(grading_response)
+        return {"error": "the llm generated a bad response, please upgrade to a much better llm"}
+
+    Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result['final_score']), individual_scores=grading_result['individual_scores'], performance_summary=grading_result['performance_summary'])
+    
     return grading_response
     
