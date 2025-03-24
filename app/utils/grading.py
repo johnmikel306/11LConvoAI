@@ -99,7 +99,7 @@ def grade_conversation(conversation_id: str, user_email: str):
     user = User.find_by_email(user_email)
     
     if not user:
-        user = User.create(name=user_email.split("@")[0], email=user_email, role="user", )
+        user = User.create(name=user_email.split("@")[0], email=user_email, role="student")
         logger.info(f"Created user: {user}")
 
     ConversationLog.create_log(
