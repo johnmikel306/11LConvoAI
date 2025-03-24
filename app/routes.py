@@ -115,6 +115,7 @@ def init_routes(app):
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
       
         user_email = g.data.email
+        # user_email = "alaminaiai@gmail.com"
         grading_result = grade_conversation(conversation_id, user_email)
         
         return jsonify({
