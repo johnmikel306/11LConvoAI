@@ -15,7 +15,7 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
 from groq import Groq
 
-groq_client = Groq(api_key="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")
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 def infer(formatted_transcript):
     """
