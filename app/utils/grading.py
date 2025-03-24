@@ -39,7 +39,6 @@ def infer(formatted_transcript):
         {formatted_transcript}
 
         Return the response in JSON format with the following structure replacing the example values with your evaluation:
-        Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
             "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
             "final_score": 60,
@@ -58,9 +57,8 @@ def infer(formatted_transcript):
             }}
         }}
 
-        CRITICAL INSTRUCTION:
-        Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
-        Report in the way  that shows you have analyzed the student's performance and are giving the student his/her feedback.
+        CRITICAL INSTRUCTION: \n
+        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
         No any additional text apart from the json object. 
         Do not add any ```json  or ```, return just the json object.
         """
