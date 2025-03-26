@@ -24,17 +24,18 @@ def infer(formatted_transcript):
     Grade the conversation transcript using the Groq API.
     """
     grading_prompt = f"""
-        You are a grading assistant for MBA students. Evaluate the following conversation transcript based on these criteria:
-        1. Critical Thinking: Did the student demonstrate analytical depth and logical reasoning?
-        2. Communication: Was the student's response clear, coherent, and well-structured?
-        3. Comprehension: Did the student understand the case and respond appropriately?
+        You are an advanced AI assistant acting as a senior grading assessor for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a student. Your evaluation must be aligned with the analytical and conceptual standards expected at the MBA level.
+      Evaluate the following conversation transcript based on these criteria:
+        1. **Critical Thinking (0–50 points): Evaluate the student's ability to demonstrate analytical depth, apply logical reasoning, and make evidence-based arguments grounded in operations management principles.
+        2. **Communication**: Communication (0–50 points): Assess the clarity, coherence, and structure of the student's responses. Consider how well ideas are articulated and logically presented.
+        3. **Comprehension**: Comprehension (0–50 points): Judge how well the student understood the case or scenario, including their ability to interpret key details and respond appropriately to the prompts.
 
-        Provide:
+        You must provide:
         1. An overall summary of the student's performance.
-        2. A final score (intgervalue between 0 and 100).
-        3. Individual scores for each criterion (integervalue between 0 and 100).
+        2. A final score (intgervalue between 0 and 80).
+        3. Individual scores for each criterion (integervalue between 0 and 70).
         4. A performance summary with 3 strengths and 3 weaknesses, each with a title and description.
-        5. Be strict in grading the student's performance.
+        5. Apply a strict and rigorous grading approach that reflects MBA-level expectations.
 
         Transcript:
         {formatted_transcript}
@@ -42,12 +43,12 @@ def infer(formatted_transcript):
         CRITICAL INSTRUCTION: \n
         Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
         Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
-        
+        You are reporting this feedback to the student directly so use "you" & "your" instead of "the" and "their".
+       
 
-        Return the response in JSON format with the following structure replacing the example values with your evaluation. you must generate a valid json in the below format, No any additional text apart from the json object.\n
-        Hare is teh format to generate as your response:\n
+        Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
-            "overall_summary": "The student's performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. The student's communication skills were clear, but the response was limited in scope.",
+            "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
             "final_score": 60,
             "individual_scores": {{
                 "critical_thinking": 40,
@@ -56,10 +57,10 @@ def infer(formatted_transcript):
             }},
             "performance_summary": {{
                 "strengths": [
-                    {{"title": "Clear communication", "description": "The student's response was easy to understand and well-structured."}}
+                    {{"title": "Clear communication", "description": "Your response was easy to understand and well-structured."}}
                 ],
                 "weaknesses": [
-                    {{"title": "Lack of critical thinking", "description": "The student failed to demonstrate deep analytical thinking and logical reasoning in their response."}}
+                    {{"title": "Lack of critical thinking", "description": "You failed to demonstrate deep analytical thinking and logical reasoning in their response."}}
                 ]
             }}
         }}
