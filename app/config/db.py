@@ -1,6 +1,8 @@
 import os
+import time
 from mongoengine import connect
 from dotenv import load_dotenv
+from app.utils.logger import setup_logger
 from ..utils.logger import logger
 from ..models import User, CaseStudy, Grade, ConversationLog, Session
 
@@ -27,6 +29,18 @@ def setup_db():
         logger.info("Connected to MongoDB successfully")
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {str(e)}")
-        raise
+        try:
+            time.sleep(10)
+            connect(db="ailp", host=db_uri)
+            logger.info("Connected to MongoDB successfully")
+        except:
+            try:
+                time.sleep(10)
+                connect(db="ailp", host=db_uri)
+                logger.info("Connected to MongoDB successfully")
+            except:
+
+                raise
+            
 
     return
