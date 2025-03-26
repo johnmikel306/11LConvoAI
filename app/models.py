@@ -106,6 +106,18 @@ class Grade(Document):
         Find a grade entry by conversation ID.
         """
         return cls.objects(conversation_id=conversation_id).first()
+    
+    @classmethod
+    def find_grade_by_user_email(cls, user_email: str):
+       # Find the user first
+        user = User.objects(email=user_email).first()
+        
+        # If user is not found, return an empty queryset
+        if not user:
+            return cls.objects.none()
+        
+        # Find all grades for the specific user
+        return cls.objects(user=user)
 
 class ConversationLog(Document):
     user = ReferenceField(User, required=True)
