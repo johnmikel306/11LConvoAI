@@ -132,7 +132,7 @@ def init_routes(app):
     def get_user_grades():
        
         auth_header = request.headers.get('Authorization')
-        user_email = "alaminai@gmail.com"
+        user_email = None
         
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
