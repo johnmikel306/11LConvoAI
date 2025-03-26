@@ -1,6 +1,7 @@
 import datetime
 
 from dotenv import load_dotenv
+import json
 from .utils.grading import grade_conversation
 from app.utils.jwt import token_required
 import jwt
@@ -113,16 +114,18 @@ def init_routes(app):
 
         if not g.data:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
-      
-        # user_email = g.data.email
-        user_email = "user@gmail.com"
-        grading_result = grade_conversation(conversation_id, user_email)
-        
-        return jsonify({
-            "status": "success",
-            "message": "Conversation graded.",
-            "grading_result": str(grading_result)
-        })
+        try:
+            user_email = g.data.email
+            # user_email = "alamin@gmaill.com"
+            grading_result = grade_conversation(conversation_id, user_email)
+            
+            return jsonify({
+                "status": "success",
+                "message": "Conversation graded.",
+                "grading_result": str(grading_result)
+            })
+        except:
+            return jsonify({"status": "failed", "message": "error on the server"}), 500
    
         
     @app.route('/grades', methods=['GET'])
@@ -138,26 +141,42 @@ def init_routes(app):
         
         if not user_email:
             return jsonify({"status": "error", "message": "User not authenticated"}), 401
-        
-        user = User.find_by_email(user_email)
-        if not user:
-            return jsonify({"status": "error", "message": "User not found"}), 404
+        try:
+            user = User.find_by_email(user_email)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+                
+            grades = Grade.find_grade_by_user_email(user_email)
             
-        grades = Grade.find(Grade.user.id == user.id).to_list()
-        
-        formatted_grades = []
-        for grade in grades:
-            formatted_grades.append({
-                "id": str(grade.id),
-                "conversation_id": grade.conversation_id,
-                "timestamp": grade.timestamp.isoformat(),
-                "final_score": grade.final_score,
-                "individual_scores": grade.individual_scores,
-                "performance_summary": grade.performance_summary
+            formatted_grades = []
+            for grade in grades:
+                formatted_performance_summary = {}
+                for key, items in grade.performance_summary.items():
+                    formatted_items = []
+                    for item in items: 
+                        formatted_items.append({
+                            "title": item.title,
+                            "description": item.description
+                        })
+                    formatted_performance_summary[key] = formatted_items
+
+
+                formatted_grades.append({
+                    "id": str(grade.id),
+                    "user_email": grade.user.email,
+                    "timestamp": grade.timestamp.isoformat(),
+                    "final_score": grade.final_score,
+                    "individual_scores": grade.individual_scores,
+                    "performance_summary": formatted_performance_summary,
+                    "conversation_id": grade.conversation_id
+                })
+
+            return jsonify({
+                "status": "success",
+                "grades": formatted_grades
             })
-            
-        return jsonify({
-            "status": "success",
-            "grades": formatted_grades
-        })
-    
+        except:
+            return jsonify({
+                "status": "failed",
+                "message": "failed to retrieve responses"
+            }), 500
