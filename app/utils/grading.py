@@ -24,27 +24,21 @@ def infer(formatted_transcript):
     Grade the conversation transcript using the Groq API.
     """
     grading_prompt = f"""
-        You are an advanced AI assistant acting as a senior grading assessor for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a student. Your evaluation must be aligned with the analytical and conceptual standards expected at the MBA level.
+      You are an advanced AI assistant acting as a senior grading assessor for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a user. You are to evaluate the response of the "user" to the "agent" questions. Your evaluation must be aligned with the analytical and conceptual standards expected at the MBA level.
       Evaluate the following conversation transcript based on these criteria:
-        1. **Critical Thinking (0–50 points): Evaluate the student's ability to demonstrate analytical depth, apply logical reasoning, and make evidence-based arguments grounded in operations management principles.
-        2. **Communication**: Communication (0–50 points): Assess the clarity, coherence, and structure of the student's responses. Consider how well ideas are articulated and logically presented.
-        3. **Comprehension**: Comprehension (0–50 points): Judge how well the student understood the case or scenario, including their ability to interpret key details and respond appropriately to the prompts.
+        1. **Critical Thinking (0-50 points): Evaluate the user's ability to demonstrate analytical depth, apply logical reasoning, and make evidence-based arguments grounded in operations management principles.
+        2. **Communication**: Communication (0-50 points): Assess the clarity, coherence, and structure of the user's responses. Consider how well ideas are articulated and logically presented.
+        3. **Comprehension**: Comprehension (0-50 points): Judge how well the user understood the case or scenario, including their ability to interpret key details and respond appropriately to the prompts.
 
         You must provide:
-        1. An overall summary of the student's performance.
-        2. A final score (intgervalue between 0 and 80).
-        3. Individual scores for each criterion (integervalue between 0 and 70).
+        1. An overall summary of the user's performance.
+        2. A final score (intger value between 0 and 100).
+        3. Individual scores for each criterion (integer value between 0 and 100).
         4. A performance summary with 3 strengths and 3 weaknesses, each with a title and description.
         5. Apply a strict and rigorous grading approach that reflects MBA-level expectations.
 
         Transcript:
         {formatted_transcript}
-
-        CRITICAL INSTRUCTION: \n
-        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
-        Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
-        You are reporting this feedback to the student directly so use "you" & "your" instead of "the" and "their".
-       
 
         Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
@@ -65,7 +59,12 @@ def infer(formatted_transcript):
             }}
         }}
 
-        
+        CRITICAL INSTRUCTION:
+        Don't be generous with allocating marks for the evaluation. Make sure to look out for the user's response to the agents questions. If there is no response, inidicate it in the feedback and give a score of 0.
+        You are reporting this feedback to the user directly so use "you" & "your" instead of "the" and "their".
+        Don't refer to the agent as an agent in the feedback but rather as it's title in the conversation transcript.
+        No any additional text apart from the json object.
+        Do not add any ```json  or ```, return just the json object.
         """
     completion = groq_client.chat.completions.create(
         model="qwen-2.5-32b",
@@ -75,10 +74,13 @@ def infer(formatted_transcript):
                 "content": grading_prompt
             }
         ],
-        response_format={"type": "json_object"},
-        temperature=0.6,
-       
+        temperature=0.5,
+        max_completion_tokens=1024,
+        top_p=1,
+        stream=False,
+        stop=None,
     )
+
     return completion.choices[0].message.content
 
 
