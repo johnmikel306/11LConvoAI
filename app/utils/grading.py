@@ -39,6 +39,15 @@ def infer(formatted_transcript):
 
         Transcript:
         {formatted_transcript}
+        
+        CRITICAL INSTRUCTION: \n
+        Don't be generous with allocating marks for the evaluation. Make sure to look out for the user's response to the agents questions. If there is no response, inidicate it in the feedback and give a score of 0.
+        Craft your feedback in a way that demonstrates you've carefully analyzed the student's work. Address the student directly using "you" (avoiding phrases like "the student" or "their"). 
+        Think of this feedback as a direct conversation with the student to help them understand their strengths and areas for improvement. Be specific, offer concrete examples from their work, and suggest clear steps they can take to improve in the future.
+        You are reporting this feedback to the student directly so use "you" & "your" instead of "the" and "their"        
+        Don't refer to the agent as an agent in the feedback but rather as it's title in the conversation transcript.
+        No any additional text apart from the json object.
+        Do not add any ```json  or ```, return just the json object.
 
         Return the response in JSON format with the following structure replacing the example values with your evaluation:
         {{
@@ -59,12 +68,7 @@ def infer(formatted_transcript):
             }}
         }}
 
-        CRITICAL INSTRUCTION:
-        Don't be generous with allocating marks for the evaluation. Make sure to look out for the user's response to the agents questions. If there is no response, inidicate it in the feedback and give a score of 0.
-        You are reporting this feedback to the user directly so use "you" & "your" instead of "the" and "their".
-        Don't refer to the agent as an agent in the feedback but rather as it's title in the conversation transcript.
-        No any additional text apart from the json object.
-        Do not add any ```json  or ```, return just the json object.
+        
         """
     completion = groq_client.chat.completions.create(
         model="qwen-2.5-32b",
