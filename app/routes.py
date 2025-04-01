@@ -10,7 +10,7 @@ from .utils.cas_helper import validate_service_ticket
 import os
 from .services import create_user, get_signed_url
 from .utils.logger import logger
-from .models import Grade, Session, User
+from .models import ConversationLog, Grade, Session, User
 
 
 load_dotenv()
@@ -179,4 +179,31 @@ def init_routes(app):
             return jsonify({
                 "status": "failed",
                 "message": "failed to retrieve responses"
+            }), 500
+
+    @app.route('/get_converstaion_count', methods=['GET'])
+    @token_required
+    def get_conversation_count():
+        try:
+            if not g.data:
+                return jsonify({
+                    "status": "error",
+                    "message": "User not authenticated"
+                }), 401
+            
+
+            user_email = g.data.email
+            
+            user = User.find_by_email(user_email)
+            conversation_count = ConversationLog.objects(user=user).count()
+            return jsonify({
+                "status": "success",
+                "conversation_count": conversation_count
+            })
+        
+        except Exception as e:
+            
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching the conversation count"
             }), 500
