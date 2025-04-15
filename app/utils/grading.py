@@ -71,7 +71,7 @@ def infer(formatted_transcript):
         
         """
     completion = groq_client.chat.completions.create(
-        model="qwen-2.5-32b",
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "user",
@@ -111,13 +111,13 @@ def grade_conversation(conversation_id: str, user_email: str):
             conversation = client.conversational_ai.get_conversation(conversation_id)
 
     transcript = conversation.transcript
-    
     formatted_transcript = []
     for message in transcript:
         formatted_transcript.append({
             "role": message.role,
             "message": message.message
         })
+    
     
     user = User.find_by_email(user_email)
     
