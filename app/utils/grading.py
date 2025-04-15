@@ -68,7 +68,7 @@ def infer(formatted_transcript):
         
         """
     completion = groq_client.chat.completions.create(
-        model="qwen-2.5-32b",
+        model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "user",
