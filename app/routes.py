@@ -207,3 +207,94 @@ def init_routes(app):
                 "status": "error",
                 "message": "An error occurred while fetching the conversation count"
             }), 500
+
+
+    @app.route('/download_report', methods=['GET'])
+    @token_required
+    def download_report():
+        try:
+            if not g.data:
+                return jsonify({
+                    "status": "error",
+                    "message": "User not authenticated"
+                }), 401
+
+            user_email = g.data.email
+            user = User.find_by_email(user_email)
+            grade = Grade.find_grade_by_user_email(user_email).order_by('-timestamp').first()
+
+            if not grade:
+                return jsonify({
+                    "status": "error",
+                    "message": "No grade report found"
+                }), 404
+
+            performance_summary = {
+                key: [{"title": item.title, "description": item.description} for item in items]
+                for key, items in grade.performance_summary.items()
+            }
+
+            return jsonify({
+                "status": "success",
+                "Grade report": {
+                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "final_score": grade.final_score,
+                    "individual_scores": grade.individual_scores,
+                    "performance_summary": performance_summary
+                }
+            })
+        except Exception as e:
+            logger.error(f"Error in /download_report: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching the conversation count"
+            }), 500
+
+
+    @app.route('/view_previous_grades', methods=['GET'])
+    @token_required
+    def view_previous_grades():
+        try:
+            if not g.data:
+                return jsonify({
+                    "status": "error",
+                    "message": "User not authenticated"
+                }), 401
+
+            user_email = g.data.email
+            user = User.find_by_email(user_email)
+            grades = Grade.find_grade_by_user_email(user_email)
+
+            if not grades:
+                return jsonify({
+                    "status": "error",
+                    "message": "No grades found"
+                }), 404
+
+            formatted_grades = []
+            for grade in grades:
+                performance_summary = {
+                    key: [{"title": item.title, "description": item.description} for item in items]
+                    for key, items in grade.performance_summary.items()
+                }
+
+                formatted_grades.append({
+                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "final_score": grade.final_score,
+                    "individual_scores": grade.individual_scores,
+                    "performance_summary": performance_summary
+                })
+
+            return jsonify({
+                "status": "success",
+                "conversation_count": grades.count(),
+                "Grade report": formatted_grades
+            })
+        except Exception as e:
+            logger.error(f"Error in /view_previous_grades: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching the conversation count"
+            }), 500
+    
+    
