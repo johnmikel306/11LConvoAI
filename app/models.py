@@ -1,3 +1,5 @@
+# models.py
+
 from datetime import datetime, timezone
 from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField, EmbeddedDocumentListField
 from typing import Optional, Dict, List, ClassVar
@@ -47,8 +49,6 @@ class CaseStudy(Document):
     title = StringField(required=True)
     description = StringField(required=True)
     agent_id = StringField()
-    conversation_id = StringField()
-    transcript = ListField(DictField())
 
     meta = {'collection': 'case_studies'}
 
@@ -122,6 +122,7 @@ class Grade(Document):
 class ConversationLog(Document):
     user = ReferenceField(User, required=True)
     conversation_id = StringField(required=True)
+    case_study = ReferenceField(CaseStudy, required=False)  # New field to reference case study
     transcript = ListField(DictField())
     timestamp = DateTimeField(default=datetime.now(timezone.utc))
 
@@ -132,7 +133,8 @@ class ConversationLog(Document):
         cls,
         user: User,
         conversation_id: str,
-        transcript: List[Dict]
+        transcript: List[Dict],
+        case_study: CaseStudy = None  # Add optional case_study parameter
     ) -> "ConversationLog":
         """
         Create and save a new conversation log entry.
@@ -140,6 +142,7 @@ class ConversationLog(Document):
         log = cls(
             user=user,
             conversation_id=conversation_id,
+            case_study=case_study,
             transcript=transcript,
             timestamp=datetime.now(timezone.utc)
         )
@@ -149,6 +152,7 @@ class ConversationLog(Document):
 class Session(Document):
     user_email = StringField(required=True)
     conversation_id = StringField()
+    case_study_id = StringField()  # New field to store case study ID
     is_active = BooleanField(default=True)
     start_time = DateTimeField(default=datetime.now(timezone.utc))
     end_time = DateTimeField()

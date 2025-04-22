@@ -82,7 +82,7 @@ def infer(formatted_transcript):
     return completion.choices[0].message.content
 
 
-def grade_conversation(conversation_id: str, user_email: str):
+def grade_conversation(conversation_id: str, user_email: str, case_study=None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
@@ -132,7 +132,7 @@ def grade_conversation(conversation_id: str, user_email: str):
         print(grading_response)
         grading_result = next(extract_json(grading_response))
         
-    Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result["final_score"]), individual_scores=grading_result["individual_scores"], performance_summary=grading_result["performance_summary"])
+    Grade.create_grade(user=user, conversation_id=conversation_id, final_score=int(grading_result["final_score"]), individual_scores=grading_result["individual_scores"], performance_summary=grading_result["performance_summary"], case_study=case_study)
     
     return grading_response
     
