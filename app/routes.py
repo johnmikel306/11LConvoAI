@@ -419,7 +419,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
             
             # Get all case studies from the database
-            case_studies = CaseStudy.objects()
+            case_studies = CaseStudy.objects.all()
             
             # Format the case studies data
             formatted_case_studies = []
@@ -427,7 +427,8 @@ def init_routes(app):
                 formatted_case_studies.append({
                     "id": str(case.id),
                     "title": case.title,
-                    "description": case.description
+                    "description": case.description,
+                    "agentID": case.agentID
                 })
             
             return jsonify({
