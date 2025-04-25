@@ -1,7 +1,6 @@
 import datetime
 
 from dotenv import load_dotenv
-import json
 
 from elevenlabs import ElevenLabs
 from .utils.grading import grade_conversation
@@ -293,7 +292,7 @@ def init_routes(app):
                 "message": "failed to retrieve responses"
             }), 500
 
-    @app.route('/get_converstaion_count', methods=['GET'])
+    @app.route('/get_conversation_count', methods=['GET'])
     @token_required
     def get_conversation_count():
         try:
