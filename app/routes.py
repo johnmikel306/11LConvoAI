@@ -427,7 +427,7 @@ def init_routes(app):
                     "id": str(case.id),
                     "title": case.title,
                     "description": case.description,
-                    "agentID": case.agentID
+                    "agentID": case.agent_id
                 })
 
             return jsonify({
