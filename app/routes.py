@@ -347,7 +347,7 @@ def init_routes(app):
 
             return jsonify({
                 "status": "success",
-                "Grade report": {
+                "report": {
                     "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
                     "final_score": grade.final_score,
                     "individual_scores": grade.individual_scores,
@@ -399,7 +399,7 @@ def init_routes(app):
             return jsonify({
                 "status": "success",
                 "conversation_count": grades.count(),
-                "Grade report": formatted_grades
+                "report": formatted_grades
             })
         except Exception as e:
             logger.error(f"Error in /view_previous_grades: {str(e)}")
