@@ -334,7 +334,6 @@ def init_routes(app):
             }
 
             case_study = {
-                "id": str(grade.case_study.id),
                 "title": grade.case_study.title,
             }
 
