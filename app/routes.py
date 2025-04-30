@@ -334,13 +334,14 @@ def init_routes(app):
             }
 
             case_study = {
-                "title": grade.case_study.title,
+                "id": str(grade.case_study.id) if grade.case_study else None,
+                "title": grade.case_study.title if grade.case_study else None,
             }
 
             return jsonify({
                 "status": "success",
                 "user": {
-                    "id": user.id,
+                    "id": str(user.id),
                     "email": user.email,
                     "name": user.name
                 },
