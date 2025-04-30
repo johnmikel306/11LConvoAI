@@ -342,7 +342,7 @@ def init_routes(app):
                 },
                 "session_id": str(grade.conversation_id),
                 "timestamp": grade.timestamp.isoformat(),
-                "case_study": grade.case_study.title if grade.case_study else None,
+                "case_study": grade.case_study if grade.case_study else None,
                 "report": {
                     "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
                     "final_score": grade.final_score,
