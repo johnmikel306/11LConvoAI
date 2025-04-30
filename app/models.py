@@ -116,8 +116,8 @@ class Grade(Document):
         if not user:
             return cls.objects.none()
         
-        # Find all grades for the specific user
-        return cls.objects(user=user)
+        # Find all grades for the specific user, populating the case study
+        return cls.objects(user=user).populate('case_study')
 
 class ConversationLog(Document):
     user = ReferenceField(User, required=True)

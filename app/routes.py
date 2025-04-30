@@ -13,13 +13,12 @@ from .services import create_user
 from .utils.logger import logger
 from .models import CaseStudy, ConversationLog, Grade, Session, User
 
-
 load_dotenv()
 
 API_KEY = os.getenv('ELEVENLABS_API_KEY')
 
-def init_routes(app):
 
+def init_routes(app):
     @app.before_request
     def load_session():
         auth_header = request.headers.get('Authorization')
@@ -30,7 +29,6 @@ def init_routes(app):
 
                 decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
                 user_email = decoded.get('email')
-
 
                 active_session = Session.find_active_by_email(user_email)
                 g.user_info = active_session
@@ -125,7 +123,6 @@ def init_routes(app):
                 "message": "An error occurred while generating the signed URL"
             }), 500
 
-
     @app.route('/cas/auth-url', methods=['GET'])
     def cas_login():
 
@@ -142,14 +139,12 @@ def init_routes(app):
             logger.error("Invalid request: No ticket provided.")
             return jsonify({"status": "error", "message": "No ticket provided."}), 400
 
-
         service_url = "https://miva-mind.vercel.app/auth/cas/callback"
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
         user_email = validate_service_ticket(ticket, service_url)
 
         if not user_email:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
-
 
         create_user(user_email)
         print(user_email)
@@ -159,7 +154,6 @@ def init_routes(app):
         }, os.getenv('JWT_SECRET'), algorithm='HS256')
         print(token)
         return jsonify({'token': token})
-
 
     @app.route('/cas/logout')
     def cas_logout():
@@ -171,7 +165,6 @@ def init_routes(app):
             token = auth_header.split(' ')[1]
             decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
             user_email = decoded.get('email')
-
 
         if user_email:
 
@@ -203,7 +196,6 @@ def init_routes(app):
     #         })
     #     except:
     #         return jsonify({"status": "failed", "message": "error on the server"}), 500
-
 
     @app.route('/grade/<conversation_id>', methods=['POST'])
     @token_required
@@ -238,7 +230,6 @@ def init_routes(app):
                 "message": "Error on the server"
             }), 500
 
-
     @app.route('/grades', methods=['GET'])
     def get_user_grades():
 
@@ -271,7 +262,6 @@ def init_routes(app):
                         })
                     formatted_performance_summary[key] = formatted_items
 
-
                 formatted_grades.append({
                     "id": str(grade.id),
                     "user_email": grade.user.email,
@@ -302,7 +292,6 @@ def init_routes(app):
                     "message": "User not authenticated"
                 }), 401
 
-
             user_email = g.data.email
 
             user = User.find_by_email(user_email)
@@ -318,7 +307,6 @@ def init_routes(app):
                 "status": "error",
                 "message": "An error occurred while fetching the conversation count"
             }), 500
-
 
     @app.route('/download_report', methods=['GET'])
     @token_required
@@ -347,6 +335,14 @@ def init_routes(app):
 
             return jsonify({
                 "status": "success",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "name": user.name
+                },
+                "session_id": str(grade.conversation_id),
+                "timestamp": grade.timestamp.isoformat(),
+                "case_study": grade.case_study.title if grade.case_study else None,
                 "report": {
                     "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
                     "final_score": grade.final_score,
@@ -360,7 +356,6 @@ def init_routes(app):
                 "status": "error",
                 "message": "An error occurred while fetching the conversation count"
             }), 500
-
 
     @app.route('/view_previous_grades', methods=['GET'])
     @token_required
@@ -407,7 +402,6 @@ def init_routes(app):
                 "status": "error",
                 "message": "An error occurred while fetching the conversation count"
             }), 500
-
 
     @app.route('/case-studies', methods=['GET'])
     @token_required
@@ -478,7 +472,6 @@ def init_routes(app):
                 "message": "An error occurred while fetching the case study"
             }), 500
 
-
     @app.route('/admin/case-studies', methods=['POST'])
     @token_required
     def create_case_study():
@@ -538,7 +531,6 @@ def init_routes(app):
                 "message": "An error occurred while creating the case study"
             }), 500
 
-
     @app.route('/admin/case-studies/<case_study_id>', methods=['PUT'])
     @token_required
     def update_case_study(case_study_id):
@@ -546,7 +538,6 @@ def init_routes(app):
         try:
             if not g.data:
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
-
 
             user_email = g.data.email
             user = User.find_by_email(user_email)
@@ -600,7 +591,6 @@ def init_routes(app):
                 "status": "error",
                 "message": "An error occurred while updating the case study"
             }), 500
-
 
     @app.route('/admin/case-studies/<case_study_id>', methods=['DELETE'])
     @token_required
