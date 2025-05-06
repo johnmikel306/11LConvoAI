@@ -295,7 +295,10 @@ def init_routes(app):
             user_email = g.data.email
 
             user = User.find_by_email(user_email)
-            conversation_count = ConversationLog.objects(user=user).count()
+
+            case_study_id = request.args.get('case_study_id')
+
+            conversation_count = ConversationLog.objects(user=user, case_study__match={id: case_study_id}).count()
             return jsonify({
                 "status": "success",
                 "conversation_count": conversation_count
