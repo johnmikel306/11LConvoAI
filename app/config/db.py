@@ -1,10 +1,11 @@
 import os
 import time
-from mongoengine import connect
+
 from dotenv import load_dotenv
-from app.utils.logger import setup_logger
+from mongoengine import connect
+
 from ..utils.logger import logger
-from ..models import User, CaseStudy, Grade, ConversationLog, Session
+
 
 def setup_db():
     """
