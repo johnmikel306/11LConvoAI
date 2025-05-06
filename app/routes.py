@@ -298,14 +298,14 @@ def init_routes(app):
 
             case_study_id = request.args.get('case_study_id')
 
-            conversation_count = ConversationLog.objects(user=user, case_study__match={id: case_study_id}).count()
+            conversation_count = ConversationLog.objects(user=user, case_study=case_study_id).count()
             return jsonify({
                 "status": "success",
                 "conversation_count": conversation_count
             })
 
         except Exception as e:
-
+            logger.error(f"Error in get_conversation_count: {str(e)}")
             return jsonify({
                 "status": "error",
                 "message": "An error occurred while fetching the conversation count"
