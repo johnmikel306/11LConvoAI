@@ -298,7 +298,9 @@ def init_routes(app):
 
             case_study_id = request.args.get('case_study_id')
 
-            conversation_count = ConversationLog.objects(user=user, case_study=case_study_id).count()
+            case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
+
+            conversation_count = ConversationLog.objects(user=user, case_study=case_study).count()
             return jsonify({
                 "status": "success",
                 "conversation_count": conversation_count
