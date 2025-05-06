@@ -167,6 +167,7 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     ConversationLog.create_log(
         user=user,
         conversation_id=conversation_id,
+        case_study=case_study,
         transcript=formatted_transcript
     )
     grading_response = infer(formatted_transcript, case_study.description)
