@@ -1,20 +1,26 @@
+import asyncio
 import os
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from dotenv import load_dotenv
+import threading
+from flask import Flask
+from .routes import init_routes
 from .config.db import setup_db
-from .utils.logger import logger
 
-load_dotenv()
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Code to run on startup
-    logger.info("Starting up...")
-    await setup_db()  # Initialize the database connection
-    yield
-    # Code to run on shutdown
-    logger.info("Shutting down...")
 
-# Initialize FastAPI app with lifespan
-app = FastAPI(lifespan=lifespan)
+def init_app():
+    
+    app = Flask(__name__)
+   
+    app.secret_key = os.getenv("SECRET_KEY")
+    if not app.secret_key:
+        raise ValueError("SECRET_KEY environment variable is required for session management.")
+
+    setup_db()
+    init_routes(app)
+
+    return app
+
+app = init_app()
+
+
+__all__ = ['app', 'socketio']

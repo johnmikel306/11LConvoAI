@@ -15,14 +15,18 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 def setup_logger():
+  
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
+  
     handler = logging.StreamHandler()
     handler.setFormatter(JSONFormatter())
 
+ 
     logger.addHandler(handler)
 
     return logger
+
 
 logger = setup_logger()

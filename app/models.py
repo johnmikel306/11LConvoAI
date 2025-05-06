@@ -1,126 +1,182 @@
+# models.py
+
 from datetime import datetime, timezone
-from beanie import Document, PydanticObjectId
-from typing import Optional, Dict, List
+from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField, EmbeddedDocumentListField
+from typing import Optional, Dict, List, ClassVar
 from pydantic import BaseModel, Field, EmailStr
 
+
 class PerformanceItem(BaseModel):
+    """
+    Model for individual performance items (strengths/weaknesses).
+    Example:
+        PerformanceItem(title="Strong analytical skills", description="The student demonstrated excellent ability to analyze complex situations.")
+    """
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1)
 
+
+class PerformanceItemDocument(EmbeddedDocument):
+    title = StringField(required=True, max_length=200)
+    description = StringField(required=True)
+
 class User(Document):
-    id: PydanticObjectId = None
-    name: str
-    email: EmailStr
-    role: str
-    date_added: Optional[datetime]
-    date_updated: Optional[datetime]
+    name = StringField(required=True)
+    email = EmailField(required=True, unique=True)
+    role = StringField(required=True)
+    date_added = DateTimeField(default=datetime.now(timezone.utc))
+    date_updated = DateTimeField()
     
-    class Meta:
-       collection = "users"
+    meta = {'collection': 'users'}
 
     @classmethod
-    async def find_by_email(cls, email: str) -> Optional["User"]:
-        return await cls.find_one({"email": email})
+    def find_by_email(cls, email: str) -> Optional["User"]:
+        """
+        Find a user by email in the database.
+        """
+        return cls.objects(email=email).first()
     
-    async def create(self, **kwargs) -> "User":
-        user = await self.insert(**kwargs)
+    @classmethod 
+    def create(cls, **kwargs) -> "User":
+        """
+        Create a new user and save it to the database.
+        """
+        user = cls(**kwargs) 
+        user.save()  
         return user
 
 class CaseStudy(Document): 
-    title: str
-    description: str
-    agent_id: Optional[str]
-    conversation_id: Optional[str]
-    transcript: Optional[List[Dict]]
+    title = StringField(required=True)
+    description = StringField(required=True)
+    agent_id = StringField()
 
-    class Meta:
-        collection = "case_studies"
+    meta = {'collection': 'case_studies'}
 
 class Grade(Document):
-    user: User
-    case_study: CaseStudy
-    final_score: int = Field(..., ge=0, le=100)
-    individual_scores: Dict[str, int] = Field(...)
-    performance_summary: Dict[str, List[PerformanceItem]]
-    conversation_id: str
-    timestamp: datetime
+    user = ReferenceField(User, required=True)
+    case_study = ReferenceField(CaseStudy, required=False)
+    final_score = IntField(required=True, min_value=0, max_value=100)
+    individual_scores = DictField(required=True)
+    performance_summary = DictField(field=ListField(EmbeddedDocumentField(PerformanceItemDocument)))
+    conversation_id = StringField(required=True)
+    timestamp = DateTimeField(default=datetime.now(timezone.utc))
 
-    class Meta:
-        collection = "grades"
+    meta = {'collection': 'grades'}
 
     @classmethod
-    async def create_grade(
+    def create_grade(
         cls,
         user: User,
-        case_study: CaseStudy,
         conversation_id: str,
         final_score: int,
         individual_scores: Dict[str, int],
-        performance_summary: Dict[str, List[PerformanceItem]]
+        performance_summary: Dict[str, List[dict]],
+        case_study: CaseStudy = None,
     ) -> "Grade":
+        """
+        Create and save a new grade entry.
+        """
+      
+        processed_performance_summary = {}
+        for key, items in performance_summary.items():
+            processed_items = []
+            for item in items:
+                embedded_item = PerformanceItemDocument(
+                    title=item["title"],
+                    description=item["description"]
+                )
+                processed_items.append(embedded_item)
+            processed_performance_summary[key] = processed_items
+
         grade = cls(
             user=user,
             case_study=case_study,
             conversation_id=conversation_id,
             final_score=final_score,
             individual_scores=individual_scores,
-            performance_summary=performance_summary,
+            performance_summary=processed_performance_summary,
             timestamp=datetime.now(timezone.utc)
         )
-        await grade.insert()
+        grade.save()
         return grade
 
     @classmethod
-    async def find_by_conversation_id(cls, conversation_id: str) -> Optional["Grade"]:
-        return await cls.find_one({"conversation_id": conversation_id})
+    def find_by_conversation_id(cls, conversation_id: str) -> Optional["Grade"]:
+        """
+        Find a grade entry by conversation ID.
+        """
+        return cls.objects(conversation_id=conversation_id).first()
+    
+    @classmethod
+    def find_grade_by_user_email(cls, user_email: str):
+       # Find the user first
+        user = User.objects(email=user_email).first()
+        
+        # If user is not found, return an empty queryset
+        if not user:
+            return cls.objects.none()
+        
+        # Find all grades for the specific user, populating the case study
+        return cls.objects(user=user)
 
 class ConversationLog(Document):
-    user: User
-    conversation_id: str
-    transcript: list
-    timestamp: datetime
+    user = ReferenceField(User, required=True)
+    conversation_id = StringField(required=True)
+    case_study = ReferenceField(CaseStudy, required=False)  # New field to reference case study
+    transcript = ListField(DictField())
+    timestamp = DateTimeField(default=datetime.now(timezone.utc))
 
-    class Meta:
-        collection = "conversation_logs"
+    meta = {'collection': 'conversation_logs'}
 
     @classmethod
-    async def create_log(
+    def create_log(
         cls,
         user: User,
         conversation_id: str,
-        transcript: List[Dict]
+        transcript: List[Dict],
+        case_study: CaseStudy = None  # Add optional case_study parameter
     ) -> "ConversationLog":
+        """
+        Create and save a new conversation log entry.
+        """
         log = cls(
             user=user,
             conversation_id=conversation_id,
+            case_study=case_study,
             transcript=transcript,
             timestamp=datetime.now(timezone.utc)
         )
-        await log.insert()
+        log.save()
         return log
 
 class Session(Document):
-    user_email: str
-    conversation_id: Optional[str]
-    is_active: bool = True
-    start_time: datetime = datetime.now(timezone.utc)
-    end_time: Optional[datetime] = None
-    transcript: Optional[List[Dict]] = []
-    last_activity: Optional[datetime] = None
+    user_email = StringField(required=True)
+    conversation_id = StringField()
+    case_study_id = StringField()  # New field to store case study ID
+    is_active = BooleanField(default=True)
+    start_time = DateTimeField(default=datetime.now(timezone.utc))
+    end_time = DateTimeField()
+    transcript = ListField(DictField(), default=[])
+    last_activity = DateTimeField()
 
-    class Meta:
-        collection = "sessions"
+    meta = {'collection': 'sessions'}
 
     @classmethod
-    async def find_active_by_email(cls, email: str) -> Optional["Session"]:
-        return await cls.find_one({"user_email": email, "is_active": True})
+    def find_active_by_email(cls, email: str) -> Optional["Session"]:
+        """
+        Find an active session for a user by email.
+        """
+        return cls.objects(user_email=email, is_active=True).first()
     
     @classmethod
-    async def end_session(cls, session_id: PydanticObjectId):
-        session = await cls.get(session_id)
+    def end_session(cls, session_id):
+        """
+        End a session.
+        """
+        session = cls.objects(id=session_id).first()
         if session:
             session.is_active = False
             session.end_time = datetime.now(timezone.utc)
-            await session.save()
+            session.save()
             return session
         return None
