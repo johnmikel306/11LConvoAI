@@ -303,6 +303,7 @@ def init_routes(app):
             conversation_count = ConversationLog.objects(user=user, case_study=case_study).count()
             return jsonify({
                 "status": "success",
+                "case_study_id": case_study_id,
                 "conversation_count": conversation_count
             })
 
@@ -377,9 +378,11 @@ def init_routes(app):
                     "message": "User not authenticated"
                 }), 401
 
+            case_study_id = request.args.get('case_study_id')
+
             user_email = g.data.email
             user = User.find_by_email(user_email)
-            grades = Grade.find_grade_by_user_email(user_email)
+            grades = Grade.find_grade_by_user_email(user_email, case_study_id)
 
             if not grades:
                 return jsonify({
@@ -404,7 +407,7 @@ def init_routes(app):
             return jsonify({
                 "status": "success",
                 "conversation_count": grades.count(),
-                "report": formatted_grades
+                "grades": formatted_grades
             })
         except Exception as e:
             logger.error(f"Error in /view_previous_grades: {str(e)}")

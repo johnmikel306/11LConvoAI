@@ -1,9 +1,11 @@
 # models.py
 
 from datetime import datetime, timezone
-from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField, EmbeddedDocumentListField
-from typing import Optional, Dict, List, ClassVar
-from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Dict, List
+
+from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, \
+    ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField
+from pydantic import BaseModel, Field
 
 
 class PerformanceItem(BaseModel):
@@ -20,13 +22,14 @@ class PerformanceItemDocument(EmbeddedDocument):
     title = StringField(required=True, max_length=200)
     description = StringField(required=True)
 
+
 class User(Document):
     name = StringField(required=True)
     email = EmailField(required=True, unique=True)
     role = StringField(required=True)
     date_added = DateTimeField(default=datetime.now(timezone.utc))
     date_updated = DateTimeField()
-    
+
     meta = {'collection': 'users'}
 
     @classmethod
@@ -35,22 +38,24 @@ class User(Document):
         Find a user by email in the database.
         """
         return cls.objects(email=email).first()
-    
-    @classmethod 
+
+    @classmethod
     def create(cls, **kwargs) -> "User":
         """
         Create a new user and save it to the database.
         """
-        user = cls(**kwargs) 
-        user.save()  
+        user = cls(**kwargs)
+        user.save()
         return user
 
-class CaseStudy(Document): 
+
+class CaseStudy(Document):
     title = StringField(required=True)
     description = StringField(required=True)
     agent_id = StringField()
 
     meta = {'collection': 'case_studies'}
+
 
 class Grade(Document):
     user = ReferenceField(User, required=True)
@@ -65,18 +70,18 @@ class Grade(Document):
 
     @classmethod
     def create_grade(
-        cls,
-        user: User,
-        conversation_id: str,
-        final_score: int,
-        individual_scores: Dict[str, int],
-        performance_summary: Dict[str, List[dict]],
-        case_study: CaseStudy = None,
+            cls,
+            user: User,
+            conversation_id: str,
+            final_score: int,
+            individual_scores: Dict[str, int],
+            performance_summary: Dict[str, List[dict]],
+            case_study: CaseStudy = None,
     ) -> "Grade":
         """
         Create and save a new grade entry.
         """
-      
+
         processed_performance_summary = {}
         for key, items in performance_summary.items():
             processed_items = []
@@ -106,18 +111,27 @@ class Grade(Document):
         Find a grade entry by conversation ID.
         """
         return cls.objects(conversation_id=conversation_id).first()
-    
+
     @classmethod
-    def find_grade_by_user_email(cls, user_email: str):
-       # Find the user first
+    def find_grade_by_user_email(cls, user_email: str, case_study_id: Optional[str] = None) -> "Grade":
+        # Find the user first
         user = User.objects(email=user_email).first()
-        
+
         # If user is not found, return an empty queryset
         if not user:
             return cls.objects.none()
-        
+
+        # If case_study_id is provided, filter by it
+        if case_study_id:
+            case_study = CaseStudy.objects(id=case_study_id).first()
+            if not case_study:
+                return cls.objects(user=user)
+            # Find all grades for the specific user and case study
+            return cls.objects(user=user, case_study=case_study)
+
         # Find all grades for the specific user, populating the case study
         return cls.objects(user=user)
+
 
 class ConversationLog(Document):
     user = ReferenceField(User, required=True)
@@ -130,11 +144,11 @@ class ConversationLog(Document):
 
     @classmethod
     def create_log(
-        cls,
-        user: User,
-        conversation_id: str,
-        transcript: List[Dict],
-        case_study: CaseStudy = None  # Add optional case_study parameter
+            cls,
+            user: User,
+            conversation_id: str,
+            transcript: List[Dict],
+            case_study: CaseStudy = None  # Add optional case_study parameter
     ) -> "ConversationLog":
         """
         Create and save a new conversation log entry.
@@ -148,6 +162,7 @@ class ConversationLog(Document):
         )
         log.save()
         return log
+
 
 class Session(Document):
     user_email = StringField(required=True)
@@ -167,7 +182,7 @@ class Session(Document):
         Find an active session for a user by email.
         """
         return cls.objects(user_email=email, is_active=True).first()
-    
+
     @classmethod
     def end_session(cls, session_id):
         """
