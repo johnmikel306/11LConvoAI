@@ -60,6 +60,7 @@ class CaseStudy(Document):
 class Grade(Document):
     user = ReferenceField(User, required=True)
     case_study = ReferenceField(CaseStudy, required=False)
+    overall_summary = StringField(required=True)
     final_score = IntField(required=True, min_value=0, max_value=100)
     individual_scores = DictField(required=True)
     performance_summary = DictField(field=ListField(EmbeddedDocumentField(PerformanceItemDocument)))
@@ -73,6 +74,7 @@ class Grade(Document):
             cls,
             user: User,
             conversation_id: str,
+            overall_summary: str,
             final_score: int,
             individual_scores: Dict[str, int],
             performance_summary: Dict[str, List[dict]],
@@ -97,6 +99,7 @@ class Grade(Document):
             user=user,
             case_study=case_study,
             conversation_id=conversation_id,
+            overall_summary=overall_summary,
             final_score=final_score,
             individual_scores=individual_scores,
             performance_summary=processed_performance_summary,

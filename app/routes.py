@@ -398,7 +398,7 @@ def init_routes(app):
                 }
 
                 formatted_grades.append({
-                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "overall_summary": grade.overall_summary if grade.overall_summary else "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
                     "final_score": grade.final_score,
                     "individual_scores": grade.individual_scores,
                     "performance_summary": performance_summary
@@ -406,6 +406,7 @@ def init_routes(app):
 
             return jsonify({
                 "status": "success",
+                "case_study_id": case_study_id,
                 "conversation_count": grades.count(),
                 "grades": formatted_grades
             })
