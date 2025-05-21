@@ -303,6 +303,7 @@ def init_routes(app):
             conversation_count = ConversationLog.objects(user=user, case_study=case_study).count()
             return jsonify({
                 "status": "success",
+                "case_study_id": case_study_id,
                 "conversation_count": conversation_count
             })
 
@@ -377,9 +378,11 @@ def init_routes(app):
                     "message": "User not authenticated"
                 }), 401
 
+            case_study_id = request.args.get('case_study_id')
+
             user_email = g.data.email
             user = User.find_by_email(user_email)
-            grades = Grade.find_grade_by_user_email(user_email)
+            grades = Grade.find_grade_by_user_email(user_email, case_study_id)
 
             if not grades:
                 return jsonify({
@@ -395,7 +398,7 @@ def init_routes(app):
                 }
 
                 formatted_grades.append({
-                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "overall_summary": grade.overall_summary if grade.overall_summary else "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
                     "final_score": grade.final_score,
                     "individual_scores": grade.individual_scores,
                     "performance_summary": performance_summary
@@ -403,8 +406,9 @@ def init_routes(app):
 
             return jsonify({
                 "status": "success",
+                "case_study_id": case_study_id,
                 "conversation_count": grades.count(),
-                "report": formatted_grades
+                "grades": formatted_grades
             })
         except Exception as e:
             logger.error(f"Error in /view_previous_grades: {str(e)}")
