@@ -126,7 +126,7 @@ def init_routes(app):
     @app.route('/cas/auth-url', methods=['GET'])
     def cas_login():
 
-        service_url = "https://miva-mind.vercel.app/auth/cas/callback"
+        service_url = os.getenv('CAS_SERVICE_URL')
         cas_login_url = f"{os.getenv('CAS_LOGIN_URL')}?service={service_url}"
 
         return jsonify({'url': cas_login_url})
@@ -139,7 +139,7 @@ def init_routes(app):
             logger.error("Invalid request: No ticket provided.")
             return jsonify({"status": "error", "message": "No ticket provided."}), 400
 
-        service_url = "https://miva-mind.vercel.app/auth/cas/callback"
+        service_url = os.getenv('CAS_SERVICE_URL')
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
         user_email = validate_service_ticket(ticket, service_url)
 
