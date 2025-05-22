@@ -4,8 +4,10 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, List
 
 from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, \
-    ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField
+    ListField, BooleanField, EmbeddedDocument, EmbeddedDocumentField, EnumField
 from pydantic import BaseModel, Field
+
+from app.utils.auth import hash_password
 
 
 class PerformanceItem(BaseModel):
@@ -23,10 +25,22 @@ class PerformanceItemDocument(EmbeddedDocument):
     description = StringField(required=True)
 
 
+class UserRole(str):
+    """
+    Enum for user roles.
+    """
+    STUDENT = "student"
+    FACULTY = "faculty"
+
+
 class User(Document):
     name = StringField(required=True)
     email = EmailField(required=True, unique=True)
-    role = StringField(required=True)
+    role = EnumField(UserRole, required=True, default=UserRole.STUDENT)
+    password = StringField(default=None, required=False)
+    token = StringField(default=None, required=False)
+    title = StringField(default=None, required=False)
+    department = StringField(default=None, required=False)
     date_added = DateTimeField(default=datetime.now(timezone.utc))
     date_updated = DateTimeField()
 
@@ -44,6 +58,10 @@ class User(Document):
         """
         Create a new user and save it to the database.
         """
+        # If password is provided, hash it
+        if "password" in kwargs:
+            kwargs["password"] = hash_password(kwargs["password"])
+            pass
         user = cls(**kwargs)
         user.save()
         return user
@@ -133,6 +151,16 @@ class Grade(Document):
             return cls.objects(user=user, case_study=case_study)
 
         # Find all grades for the specific user, populating the case study
+        return cls.objects(user=user)
+
+    @classmethod
+    def find_grades_by_user_email(cls, user_email: str) -> List["Grade"]:
+        """
+        Find all grades for a specific user by email.
+        """
+        user = User.objects(email=user_email).first()
+        if not user:
+            return []
         return cls.objects(user=user)
 
 
