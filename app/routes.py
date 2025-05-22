@@ -326,7 +326,8 @@ def init_routes(app):
 
             user_email = g.data.email
             user = User.find_by_email(user_email)
-            grade = Grade.find_grade_by_user_email(user_email).order_by('-timestamp').first()
+            case_study_id = request.args.get('case_study_id')
+            grade = Grade.find_grade_by_user_email(user_email, case_study_id).order_by('-timestamp').first()
 
             if not grade:
                 return jsonify({
