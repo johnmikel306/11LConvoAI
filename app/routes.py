@@ -410,8 +410,6 @@ def init_routes(app):
                     "last_assessment_date": student_session.last_activity.isoformat() if student_session else None,
                     "sessions_completed": len(student_grades),
                     "average_score": average_score,
-                    "date_added": student.date_added.isoformat(),
-                    "date_updated": student.date_updated.isoformat()
                 })
 
             # Paginate the results
@@ -481,8 +479,6 @@ def init_routes(app):
                     } for grade in student_grades
                 ],
                 "department": student.department,
-                "date_added": student.date_added.isoformat(),
-                "date_updated": student.date_updated.isoformat()
             }
 
             return jsonify({
@@ -497,6 +493,7 @@ def init_routes(app):
                 "message": "An error occurred while fetching the student"
             }), 500
 
+    @app.route('/students/<student_id>/grades', methods=['GET'])
     @app.route('/grade/<conversation_id>', methods=['POST'])
     @token_required
     def grade_conversation_endpoint(conversation_id):
@@ -632,23 +629,31 @@ def init_routes(app):
             user_email = g.data.email
             user = User.find_by_email(user_email)
             case_study_id = request.args.get('case_study_id')
-            grade = Grade.find_grade_by_user_email(user_email, case_study_id).order_by('-timestamp').first()
-
-            if not grade:
+            grades = Grade.find_grade_by_user_email(user_email, case_study_id).order_by('-timestamp')
+            reports = []
+            if not grades or len(grades) == 0:
                 return jsonify({
                     "status": "error",
                     "message": "No grade report found"
                 }), 404
 
-            performance_summary = {
-                key: [{"title": item.title, "description": item.description} for item in items]
-                for key, items in grade.performance_summary.items()
+            case_study = {
+                "id": str(grades[0].case_study.id) if grades[0].case_study else None,
+                "title": grades[0].case_study.title if grades[0].case_study else None,
             }
 
-            case_study = {
-                "id": str(grade.case_study.id) if grade.case_study else None,
-                "title": grade.case_study.title if grade.case_study else None,
-            }
+            for grade in grades:
+                performance_summary = {
+                    key: [{"title": item.title, "description": item.description} for item in items]
+                    for key, items in grade.performance_summary.items()
+                }
+
+                reports.append({
+                    "overall_summary": grade.overall_summary if grade.overall_summary else "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "final_score": grade.final_score,
+                    "individual_scores": grade.individual_scores,
+                    "performance_summary": performance_summary,
+                })
 
             return jsonify({
                 "status": "success",
@@ -660,12 +665,7 @@ def init_routes(app):
                 "session_id": str(grade.conversation_id),
                 "timestamp": grade.timestamp.isoformat(),
                 "case_study": case_study,
-                "report": {
-                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
-                    "final_score": grade.final_score,
-                    "individual_scores": grade.individual_scores,
-                    "performance_summary": performance_summary
-                }
+                "reports": reports,
             })
         except Exception as e:
             logger.error(f"Error in /download_report: {str(e)}")
