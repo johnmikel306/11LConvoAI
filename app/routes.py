@@ -1,17 +1,18 @@
 import datetime
-
-from dotenv import load_dotenv
-
-from elevenlabs import ElevenLabs
-from .utils.grading import grade_conversation
-from app.utils.jwt import token_required
-import jwt
-from flask import jsonify, render_template, request, g
-from .utils.cas_helper import validate_service_ticket
 import os
+
+import jwt
+from dotenv import load_dotenv
+from elevenlabs import ElevenLabs
+from flask import jsonify, render_template, request, g
+
+from app.utils.jwt import token_required
+from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole
 from .services import create_user
+from .utils.auth import check_password, hash_password
+from .utils.cas_helper import validate_service_ticket
+from .utils.grading import grade_conversation
 from .utils.logger import logger
-from .models import CaseStudy, ConversationLog, Grade, Session, User
 
 load_dotenv()
 
@@ -42,13 +43,6 @@ def init_routes(app):
     def index():
         logger.info("Rendering index page")
         return render_template('index.html')
-
-    # @app.route('/get_signed_url', methods=['GET'])
-    # def signed_url():
-
-    #     logger.info("Get signed URL endpoint called")
-    #     url = get_signed_url()
-    #     return url
 
     @app.route('/get_signed_url', methods=['GET'])
     @token_required
@@ -147,12 +141,11 @@ def init_routes(app):
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
         create_user(user_email)
-        print(user_email)
         token = jwt.encode({
             'email': user_email,
+            'role': 'student',
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
         }, os.getenv('JWT_SECRET'), algorithm='HS256')
-        print(token)
         return jsonify({'token': token})
 
     @app.route('/cas/logout')
@@ -178,25 +171,329 @@ def init_routes(app):
             logger.info("No user in session.")
             return jsonify({"status": "error", "message": "No user in session."}), 400
 
-    # @app.route('/grade/<conversation_id>', methods=['POST'])
-    # @token_required
-    # def grade_conversation_endpoint(conversation_id):
+    @app.route('/auth/register', methods=['POST'])
+    def register():
+        """Register a new user"""
+        try:
+            # Get the user email and password from the request
+            data = request.json()
+            if not data or 'email' not in data or not data['password']:
+                return jsonify({"status": "error", "message": "Email and password are required"}), 400
+            user_email = data['email']
+            user_password = data['password']
+            user_name = data.get('name', None)
+            # Check if the user already exists
+            existing_user = User.find_by_email(user_email)
+            if existing_user:
+                return jsonify({"status": "error", "message": "User already exists"}), 409
+            # Create a new user
+            create_user(user_email, user_password, user_name, UserRole.FACULTY)
+            return jsonify({"status": "success", "message": "User registered successfully"}), 201
+        except Exception as e:
+            logger.error(f"Error in register: {str(e)}")
+            return jsonify({"status": "error", "message": "An error occurred during registration"}), 500
 
-    #     if not g.data:
-    #         return jsonify({"status": "error", "message": "User not authenticated"}), 401
-    #     try:
-    #         user_email = g.data.email
-    #         # user_email = "alamin@gmaill.com"
-    #         grading_result = grade_conversation(conversation_id, user_email)
+    @app.route('/auth/login', methods=['POST'])
+    def login():
+        """Login endpoint for user authentication"""
+        try:
+            # Get the user email and password from the request
+            data = request.json()
+            if not data or 'email' not in data or not data['password']:
+                return jsonify({"status": "error", "message": "Wrong email/password"}), 400
+            user_email = data['email']
+            user_password = data['password']
+            # Validate the user email
+            user = User.find_by_email(user_email)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+            # Check if the password is correct
+            if not check_password(user.password, user_password):
+                return jsonify({"status": "error", "message": "Wrong email/password"}), 401
+            # Create a JWT token for the user
+            token = jwt.encode({
+                'email': user_email,
+                'role': user.role,
+                'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
+            }, os.getenv('JWT_SECRET'), algorithm='HS256')
 
-    #         return jsonify({
-    #             "status": "success",
-    #             "message": "Conversation graded.",
-    #             "grading_result": str(grading_result)
-    #         })
-    #     except:
-    #         return jsonify({"status": "failed", "message": "error on the server"}), 500
+            return jsonify({"status": "success", "message": "User logged in.", token: token})
+        except Exception as e:
+            logger.error(f"Error in login: {str(e)}")
+            return jsonify({"status": "error", "message": "An error occurred during login"}), 500
 
+    @app.route('/auth/change-password', methods=['POST'])
+    def change_password():
+        """Change user password"""
+        try:
+            # Get the user email and new password from the request
+            data = request.json()
+            if not data or 'email' not in data or not data['new_password'] or not data['old_password']:
+                return jsonify({"status": "error", "message": "Email, old and new password are required"}), 400
+            user_email = data['email']
+            new_password = data['new_password']
+            old_password = data['old_password']
+            # Find the user by email
+            user = User.find_by_email(user_email)
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            # Check if the old password is correct
+            if not check_password(user.password, old_password):
+                return jsonify({"status": "error", "message": "Wrong old password"}), 401
+
+            # Check if the new password is the same as the old password
+            if check_password(user.password, new_password):
+                return jsonify(
+                    {"status": "error", "message": "New password cannot be the same as the old password"}), 400
+
+            # Hash the new password
+            new_password = hash_password(new_password)
+
+            # Update the user's password
+            user.password = new_password
+            user.save()
+            return jsonify({"status": "success", "message": "Password changed successfully"}), 200
+        except Exception as e:
+            logger.error(f"Error in change_password: {str(e)}")
+            return jsonify({"status": "error", "message": "An error occurred during password change"}), 500
+
+    @app.route('/users/<user_id>', methods=['GET'])
+    @token_required
+    def get_user(user_id):
+        """Get user information by ID"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Find the user by ID
+            user = User.objects(id=user_id).first()
+
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            # Format the user data
+            formatted_user = {
+                "id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "title": user.title,
+                "department": user.department,
+                "date_added": user.date_added.isoformat(),
+                "date_updated": user.date_updated.isoformat()
+            }
+
+            return jsonify({
+                "status": "success",
+                "user": formatted_user
+            })
+
+        except Exception as e:
+            logger.error(f"Error in get_user: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching the user"
+            }), 500
+
+    @app.route('/users/<user_id>', methods=['PUT'])
+    @token_required
+    def update_user(user_id):
+        """Update user information by ID"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Find the user by ID
+            user = User.objects(id=user_id).first()
+
+            if not user:
+                return jsonify({"status": "error", "message": "User not found"}), 404
+
+            # Get data from request
+            data = request.json
+            if not data:
+                return jsonify({"status": "error", "message": "No data provided"}), 400
+
+            # Update user fields
+            if 'name' in data:
+                user.name = data['name']
+            if 'title' in data:
+                user.title = data['title']
+            if 'department' in data:
+                user.department = data['department']
+
+            user.save()
+
+            return jsonify({
+                "status": "success",
+                "message": "User updated successfully",
+                "user": {
+                    "id": str(user.id),
+                    "email": user.email,
+                    "name": user.name,
+                    "role": user.role,
+                    "title": user.title,
+                    "department": user.department,
+                    "date_added": user.date_added.isoformat(),
+                    "date_updated": user.date_updated.isoformat()
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"Error in update_user: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while updating the user"
+            }), 500
+
+    @app.route('/students', methods=['GET'])
+    @token_required
+    def get_students():
+        """Get all students"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Get pagination parameters
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
+
+            # Get filter parameters
+            filter_assessment_date_range = request.args.get('assessment_date')
+            filter_case_study_id = request.args.get('case_study_id')
+
+            # Get all students from the database
+            # WARNING: we are not paginating the students here because we are not adding the filters
+            # to the query. This means that if we have a lot of students, this could be a performance issue.
+            students = User.objects(role=UserRole.STUDENT)
+
+            # Format the student data
+            formatted_students = []
+            for student in students:
+                # Get session information for each student
+                student_session = Session.find_active_by_email(student.email)
+
+                # Get grading information for each student
+                student_grades = Grade.find_grades_by_user_email(student.email)
+
+                # Filter grades by assessment date range if provided
+                if filter_assessment_date_range:
+                    start_date, end_date = filter_assessment_date_range.split(',')
+                    student_grades_with_assessment_date_filter = [grade for grade in student_grades if
+                                                                  start_date <= grade.timestamp <= end_date]
+                    if len(student_grades_with_assessment_date_filter) == 0:
+                        # Skip this student if no grades match the assessment date filter
+                        continue
+
+                # Filter students by case study ID if provided
+                if filter_case_study_id:
+                    student_grades_with_case_study_filter = [grade for grade in student_grades if
+                                                             str(grade.case_study.id) == filter_case_study_id]
+                    if len(student_grades_with_case_study_filter) == 0:
+                        # Skip this student if no grades match the case study filter
+                        continue
+
+                # Calculate average score
+                average_score = 0
+                if student_grades:
+                    total_score = sum(grade.final_score for grade in student_grades)
+                    average_score = total_score / len(student_grades)
+
+                formatted_students.append({
+                    "id": str(student.id),
+                    "email": student.email,
+                    "name": student.name,
+                    "role": student.role,
+                    "title": student.title,
+                    "department": student.department,
+                    "last_assessment_date": student_session.last_activity.isoformat() if student_session else None,
+                    "sessions_completed": len(student_grades),
+                    "average_score": average_score,
+                })
+
+            # Paginate the results
+            start = (page - 1) * per_page
+            end = start + per_page
+            paginated_students = formatted_students[start:end]
+
+            return jsonify({
+                "status": "success",
+                "data": paginated_students,
+                "meta": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": len(formatted_students),
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"Error in get_students: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching students"
+            }), 500
+
+    @app.route('/students/<student_id>', methods=['GET'])
+    @token_required
+    def get_student(student_id):
+        """Get a specific student by ID"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Find the student by ID
+            student = User.objects(id=student_id).first()
+
+            if not student:
+                return jsonify({"status": "error", "message": "Student not found"}), 404
+
+            # Get grades for the student grouped by case study
+            student_grades = Grade.objects.aggregate(
+                {
+                    "$group": {
+                        "_id": "$case_study",
+                        "grades": {
+                            "$push": {
+                                "final_score": "$final_score",
+                                "timestamp": "$timestamp"
+                            }
+                        },
+                    }
+                }
+            )
+
+            # Format the student data
+            formatted_student = {
+                "id": str(student.id),
+                "email": student.email,
+                "name": student.name,
+                "role": student.role,
+                "title": student.title,
+                "sessions_count": Session.objects(user_email=student.email).count(),
+                "case_studies_count": len(student_grades),
+                "grades": [
+                    {
+                        "case_study_id": str(grade["_id"]),
+                        "grades": grade["grades"]
+                    } for grade in student_grades
+                ],
+                "department": student.department,
+            }
+
+            return jsonify({
+                "status": "success",
+                "student": formatted_student
+            })
+
+        except Exception as e:
+            logger.error(f"Error in get_student: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching the student"
+            }), 500
+
+    @app.route('/students/<student_id>/grades', methods=['GET'])
     @app.route('/grade/<conversation_id>', methods=['POST'])
     @token_required
     def grade_conversation_endpoint(conversation_id):
@@ -217,6 +514,11 @@ def init_routes(app):
 
             # Grade the conversation, passing the case study if available
             grading_result = grade_conversation(conversation_id, user_email, case_study)
+
+            # Grading means a session is completed
+            active_session = Session.find_active_by_email(user_email)
+            if active_session:
+                Session.end_session(active_session.id)
 
             return jsonify({
                 "status": "success",
@@ -326,23 +628,32 @@ def init_routes(app):
 
             user_email = g.data.email
             user = User.find_by_email(user_email)
-            grade = Grade.find_grade_by_user_email(user_email).order_by('-timestamp').first()
-
-            if not grade:
+            case_study_id = request.args.get('case_study_id')
+            grades = Grade.find_grade_by_user_email(user_email, case_study_id).order_by('-timestamp')
+            reports = []
+            if not grades or len(grades) == 0:
                 return jsonify({
                     "status": "error",
                     "message": "No grade report found"
                 }), 404
 
-            performance_summary = {
-                key: [{"title": item.title, "description": item.description} for item in items]
-                for key, items in grade.performance_summary.items()
+            case_study = {
+                "id": str(grades[0].case_study.id) if grades[0].case_study else None,
+                "title": grades[0].case_study.title if grades[0].case_study else None,
             }
 
-            case_study = {
-                "id": str(grade.case_study.id) if grade.case_study else None,
-                "title": grade.case_study.title if grade.case_study else None,
-            }
+            for grade in grades:
+                performance_summary = {
+                    key: [{"title": item.title, "description": item.description} for item in items]
+                    for key, items in grade.performance_summary.items()
+                }
+
+                reports.append({
+                    "overall_summary": grade.overall_summary if grade.overall_summary else "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
+                    "final_score": grade.final_score,
+                    "individual_scores": grade.individual_scores,
+                    "performance_summary": performance_summary,
+                })
 
             return jsonify({
                 "status": "success",
@@ -354,12 +665,7 @@ def init_routes(app):
                 "session_id": str(grade.conversation_id),
                 "timestamp": grade.timestamp.isoformat(),
                 "case_study": case_study,
-                "report": {
-                    "overall_summary": "Your performance was fair, demonstrating some understanding of the task but lacking in critical thinking and comprehension. Your communication skills were clear, but the response was limited in scope.",
-                    "final_score": grade.final_score,
-                    "individual_scores": grade.individual_scores,
-                    "performance_summary": performance_summary
-                }
+                "reports": reports,
             })
         except Exception as e:
             logger.error(f"Error in /download_report: {str(e)}")
