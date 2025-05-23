@@ -1,6 +1,7 @@
 # models.py
 
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Optional, Dict, List
 
 from mongoengine import Document, StringField, DateTimeField, EmailField, ReferenceField, IntField, DictField, \
@@ -25,7 +26,7 @@ class PerformanceItemDocument(EmbeddedDocument):
     description = StringField(required=True)
 
 
-class UserRole(str):
+class UserRole(Enum):
     """
     Enum for user roles.
     """
@@ -36,7 +37,7 @@ class UserRole(str):
 class User(Document):
     name = StringField(required=True)
     email = EmailField(required=True, unique=True)
-    role = EnumField(UserRole, required=True, default=UserRole.STUDENT)
+    role = EnumField(UserRole, default=UserRole.STUDENT)
     password = StringField(default=None, required=False)
     token = StringField(default=None, required=False)
     title = StringField(default=None, required=False)
