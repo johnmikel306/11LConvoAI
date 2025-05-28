@@ -852,7 +852,7 @@ def init_routes(app):
                 "total_conversations": total_conversations,
                 "total_sessions": total_sessions,
                 "total_grades": total_grades,
-                "average_score": average_score[0]['average_score'] if average_score else 0,
+                "average_score": list(average_score)[0]['average_score'] if average_score else 0,
                 "total_case_studies_completed": sum(
                     item['count'] for item in total_case_studies_completed
                 ) if total_case_studies_completed else 0,
@@ -864,7 +864,7 @@ def init_routes(app):
             })
 
         except Exception as e:
-            logger.error(f"Error in /metrics: {str(e)}")
+            logger.error(f"Error in /metrics/aggregate: {str(e)}")
             return jsonify({
                 "status": "error",
                 "message": "An error occurred while fetching metrics"
