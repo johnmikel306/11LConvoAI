@@ -279,7 +279,7 @@ def init_routes(app):
                 "id": str(user.id),
                 "email": user.email,
                 "name": user.name,
-                "role": user.role,
+                "role": str(user.role),
                 "title": user.title,
                 "department": user.department,
                 "date_added": user.date_added.isoformat(),
