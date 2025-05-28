@@ -820,13 +820,13 @@ def init_routes(app):
                 {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
                 {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
                 {"$group": {"_id": None, "average_score": {"$avg": "$final_score"}}}
-            ).first()
+            )
 
             total_case_studies_completed = Grade.objects.aggregate(
                 {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
                 {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
                 {"$group": {"_id": "$case_study", "count": {"$sum": 1}}}
-            ).first()
+            )
 
             case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
 
@@ -852,9 +852,10 @@ def init_routes(app):
                 "total_conversations": total_conversations,
                 "total_sessions": total_sessions,
                 "total_grades": total_grades,
-                "average_score": average_score['average_score'] if average_score else 0,
-                "total_case_studies_completed": total_case_studies_completed[
-                    'count'] if total_case_studies_completed else 0
+                "average_score": average_score[0]['average_score'] if average_score else 0,
+                "total_case_studies_completed": sum(
+                    item['count'] for item in total_case_studies_completed
+                ) if total_case_studies_completed else 0,
             }
 
             return jsonify({
