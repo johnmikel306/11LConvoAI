@@ -918,7 +918,10 @@ def init_routes(app):
                 formatted_metrics.append({
                     "date": metric['_id'],
                     "average_score": metric['average_score'],
-                    "total_grades": metric['total_grades']
+                    "total_grades": metric['total_grades'],
+                    "communication_score": metric['communication_score'],
+                    "critical_thinking_score": metric['critical_thinking_score'],
+                    "comprehension_score": metric['comprehension_score']
                 })
 
             return jsonify({
