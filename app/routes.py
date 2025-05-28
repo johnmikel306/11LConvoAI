@@ -824,8 +824,10 @@ def init_routes(app):
                 {"$group": {"_id": "$case_study", "count": {"$sum": 1}}}
             ).first()
 
+            case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
+
             total_conversations = ConversationLog.objects(
-                case_study=CaseStudy.objects(id=case_study_id),
+                case_study=case_study,
                 timestamp__gte=start_date,
                 timestamp__lte=end_date
             ).count() if case_study_id else ConversationLog.objects().count()
@@ -835,7 +837,7 @@ def init_routes(app):
                 last_activity__lte=end_date
             ).count() if case_study_id else Session.objects.count()
             total_grades = Grade.objects(
-                case_study=CaseStudy.objects(id=case_study_id).first(),
+                case_study=case_study,
                 timestamp__gte=start_date,
                 timestamp__lte=end_date
             ).count() if case_study_id else Grade.objects.count()
