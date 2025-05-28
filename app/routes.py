@@ -825,7 +825,7 @@ def init_routes(app):
             ).first()
 
             total_conversations = ConversationLog.objects(
-                case_study=CaseStudy.objects(id=case_study_id).first(),
+                case_study=CaseStudy.objects(id=case_study_id),
                 timestamp__gte=start_date,
                 timestamp__lte=end_date
             ).count() if case_study_id else ConversationLog.objects().count()
