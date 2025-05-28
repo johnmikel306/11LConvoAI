@@ -228,11 +228,11 @@ def init_routes(app):
         try:
             # Get the user email and new password from the request
             data = request.json()
-            if not data or 'email' not in data or not data['new_password'] or not data['old_password']:
+            if not data or 'email' not in data or not data['newPassword'] or not data['oldPassword']:
                 return jsonify({"status": "error", "message": "Email, old and new password are required"}), 400
             user_email = data['email']
-            new_password = data['new_password']
-            old_password = data['old_password']
+            new_password = data['newPassword']
+            old_password = data['oldPassword']
             # Find the user by email
             user = User.find_by_email(user_email)
             if not user:
@@ -790,6 +790,147 @@ def init_routes(app):
             return jsonify({
                 "status": "error",
                 "message": "An error occurred while fetching the case study"
+            }), 500
+
+    @app.route('/metrics/aggregate', methods=['GET'])
+    @token_required
+    def get_metrics():
+        """Get system metrics"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            case_study_id = request.args.get('case_study_id')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+
+            if not start_date:
+                # Get metrics for all time
+                start_date = datetime.datetime.min.isoformat()
+
+            if not end_date:
+                end_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+            # Example metrics data
+            average_score = Grade.objects.aggregate(
+                {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
+                {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
+                {"$group": {"_id": None, "average_score": {"$avg": "$final_score"}}}
+            ).first()
+
+            total_case_studies_completed = Grade.objects.aggregate(
+                {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
+                {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
+                {"$group": {"_id": "$case_study", "count": {"$sum": 1}}}
+            ).first()
+
+            total_conversations = ConversationLog.objects(
+                case_study=CaseStudy.objects(id=case_study_id).first(),
+                timestamp__gte=start_date,
+                timestamp__lte=end_date
+            ).count() if case_study_id else ConversationLog.objects().count()
+            total_sessions = Session.objects(
+                case_study_id=case_study_id,
+                last_activity__gte=start_date,
+                last_activity__lte=end_date
+            ).count() if case_study_id else Session.objects.count()
+            total_grades = Grade.objects(
+                case_study=CaseStudy.objects(id=case_study_id).first(),
+                timestamp__gte=start_date,
+                timestamp__lte=end_date
+            ).count() if case_study_id else Grade.objects.count()
+
+            metrics = {
+                "total_students": User.objects(role=UserRole.STUDENT).count(),
+                "total_case_studies": CaseStudy.objects.count(),
+                "total_conversations": total_conversations,
+                "total_sessions": total_sessions,
+                "total_grades": total_grades,
+                "average_score": average_score['average_score'] if average_score else 0,
+                "total_case_studies_completed": total_case_studies_completed[
+                    'count'] if total_case_studies_completed else 0
+            }
+
+            return jsonify({
+                "status": "success",
+                "metrics": metrics
+            })
+
+        except Exception as e:
+            logger.error(f"Error in /metrics: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching metrics"
+            }), 500
+
+    @app.route('/metrics/grades', methods=['GET'])
+    @token_required
+    def get_timeseries_grades_metrics():
+        """Get timeseries metrics for grades"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Get the start and end dates from the request
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            case_study_id = request.args.get('case_study_id')
+
+            if not start_date:
+                # Get metrics for all time
+                start_date = datetime.datetime.min.isoformat()
+
+            if not end_date:
+                end_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+            # Convert dates to datetime objects
+            start_date = datetime.datetime.fromisoformat(start_date)
+            end_date = datetime.datetime.fromisoformat(end_date)
+
+            # Aggregate grades by date
+            grades_metrics = Grade.objects.aggregate(
+                {
+                    "$match": {
+                        "timestamp": {
+                            "$gte": start_date,
+                            "$lte": end_date
+                        },
+                        "case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
+                        "communication_score": {"$avg": "$individual_scores.communication"},
+                        "critical_thinking_score": {"$avg": "$individual_scores.critical_thinking"},
+                        "comprehension_score": {"$avg": "$individual_scores.comprehension"},
+                        "average_score": {"$avg": "$final_score"},
+                        "total_grades": {"$sum": 1}
+                    }
+                },
+                {
+                    "$sort": {"_id": 1}
+                }
+            )
+
+            formatted_metrics = []
+            for metric in grades_metrics:
+                formatted_metrics.append({
+                    "date": metric['_id'],
+                    "average_score": metric['average_score'],
+                    "total_grades": metric['total_grades']
+                })
+
+            return jsonify({
+                "status": "success",
+                "grades_metrics": formatted_metrics
+            })
+
+        except Exception as e:
+            logger.error(f"Error in /metrics/grades: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching grades metrics"
             }), 500
 
     @app.route('/admin/case-studies', methods=['POST'])
