@@ -266,8 +266,10 @@ def init_routes(app):
             if not g.data:
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
+            auth_user_id = g.data.id
+
             # Find the user by ID
-            user = User.objects(id=user_id).first()
+            user = User.objects(id=auth_user_id if user_id == 'me' else user_id).first()
 
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
@@ -304,8 +306,10 @@ def init_routes(app):
             if not g.data:
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
+            auth_user_id = g.data.id
+
             # Find the user by ID
-            user = User.objects(id=user_id).first()
+            user = User.objects(id=auth_user_id if user_id == 'me' else user_id).first()
 
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
