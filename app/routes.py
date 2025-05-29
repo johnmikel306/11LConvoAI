@@ -13,6 +13,7 @@ from .utils.auth import check_password, hash_password
 from .utils.cas_helper import validate_service_ticket
 from .utils.grading import grade_conversation
 from .utils.logger import logger
+from .utils.perser import remove_none
 
 load_dotenv()
 
@@ -27,7 +28,6 @@ def init_routes(app):
         if auth_header and auth_header.startswith('Bearer '):
             token = auth_header.split(' ')[1]
             try:
-
                 decoded = jwt.decode(token, os.getenv('JWT_SECRET'), algorithms=['HS256'])
                 user_email = decoded.get('email')
 
@@ -279,7 +279,7 @@ def init_routes(app):
                 "id": str(user.id),
                 "email": user.email,
                 "name": user.name,
-                "role": str(user.role),
+                "role": user.role,
                 "title": user.title,
                 "department": user.department,
                 "date_added": user.date_added.isoformat(),
@@ -367,43 +367,80 @@ def init_routes(app):
             filter_assessment_date_range = request.args.get('assessment_date')
             filter_case_study_id = request.args.get('case_study_id')
 
+            assessment_date_filter_pipeline = [
+                {
+                    "$match": {
+                        "timestamp": {
+                            "$gte": filter_assessment_date_range.split(',')[0],
+                            "$lte": filter_assessment_date_range.split(',')[1]
+                        }
+                    }
+                }
+            ] if filter_assessment_date_range else []
+
+            case_study_id_filter_pipeline = [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$eq": ["$case_study._id", filter_case_study_id]
+                        }
+                    }
+                }
+            ] if filter_case_study_id else []
+
+            pagination_pipeline = [
+                {
+                    "$skip": (page - 1) * per_page
+                },
+                {
+                    "$limit": per_page
+                }
+            ] if per_page > 0 and page > 0 else []
+
+            pipeline = [
+                {
+                    "$lookup": {
+                        "from": "grades",
+                        "let": {"user": "$user"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$eq": ["$user.email", "$$user.email"]
+                                    }
+                                }
+                            },
+                            *assessment_date_filter_pipeline,
+                            *case_study_id_filter_pipeline,
+                            {
+                                "$group": {
+                                    "_id": None,
+                                    "average_score": {"$avg": "$final_score"},
+                                    "last_assessment_date": {"$max": "$timestamp"},
+                                    "total_sessions": {"$sum": 1},
+                                }
+                            }
+                        ],
+                        "as": "grades"
+                    }
+                },
+                {
+                    "$unwind": {
+                        "path": "$grades",
+                        "preserveNullAndEmptyArrays": True
+                    }
+                },
+                *pagination_pipeline
+            ]
+
             # Get all students from the database
             # WARNING: we are not paginating the students here because we are not adding the filters
             # to the query. This means that if we have a lot of students, this could be a performance issue.
-            students = User.objects(role=UserRole.STUDENT)
+            students = User.objects(role=UserRole.STUDENT).aggregate(pipeline)
 
             # Format the student data
             formatted_students = []
             for student in students:
-                # Get session information for each student
-                student_session = Session.find_active_by_email(student.email)
-
-                # Get grading information for each student
-                student_grades = Grade.find_grades_by_user_email(student.email)
-
-                # Filter grades by assessment date range if provided
-                if filter_assessment_date_range:
-                    start_date, end_date = filter_assessment_date_range.split(',')
-                    student_grades_with_assessment_date_filter = [grade for grade in student_grades if
-                                                                  start_date <= grade.timestamp <= end_date]
-                    if len(student_grades_with_assessment_date_filter) == 0:
-                        # Skip this student if no grades match the assessment date filter
-                        continue
-
-                # Filter students by case study ID if provided
-                if filter_case_study_id:
-                    student_grades_with_case_study_filter = [grade for grade in student_grades if
-                                                             str(grade.case_study.id) == filter_case_study_id]
-                    if len(student_grades_with_case_study_filter) == 0:
-                        # Skip this student if no grades match the case study filter
-                        continue
-
-                # Calculate average score
-                average_score = 0
-                if student_grades:
-                    total_score = sum(grade.final_score for grade in student_grades)
-                    average_score = total_score / len(student_grades)
-
                 formatted_students.append({
                     "id": str(student.id),
                     "email": student.email,
@@ -411,23 +448,18 @@ def init_routes(app):
                     "role": student.role,
                     "title": student.title,
                     "department": student.department,
-                    "last_assessment_date": student_session.last_activity.isoformat() if student_session else None,
-                    "sessions_completed": len(student_grades),
-                    "average_score": average_score,
+                    "last_assessment_date": student.grades.get('last_assessment_date', None),
+                    "sessions_completed": student.grades.get('total_sessions', 0),
+                    "average_score": student.grades.get('average_score', 0),
                 })
-
-            # Paginate the results
-            start = (page - 1) * per_page
-            end = start + per_page
-            paginated_students = formatted_students[start:end]
 
             return jsonify({
                 "status": "success",
-                "data": paginated_students,
+                "data": formatted_students,
                 "meta": {
                     "page": page,
                     "per_page": per_page,
-                    "total": len(formatted_students),
+                    "total": User.objects(role=UserRole.STUDENT).count(),
                 }
             })
 
@@ -808,43 +840,28 @@ def init_routes(app):
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
 
-            if not start_date:
-                # Get metrics for all time
-                start_date = datetime.datetime.min.isoformat()
-
-            if not end_date:
-                end_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-            # Example metrics data
-            average_score = Grade.objects.aggregate(
-                {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
-                {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
-                {"$group": {"_id": None, "average_score": {"$avg": "$final_score"}}}
-            )
-
-            total_case_studies_completed = Grade.objects.aggregate(
-                {"$match": {"case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}}},
-                {"$match": {"timestamp": {"$gte": start_date, "$lte": end_date}}},
-                {"$group": {"_id": "$case_study", "count": {"$sum": 1}}}
-            )
-
             case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
 
-            total_conversations = ConversationLog.objects(
-                case_study=case_study,
-                timestamp__gte=start_date,
-                timestamp__lte=end_date
-            ).count() if case_study_id else ConversationLog.objects().count()
-            total_sessions = Session.objects(
-                case_study_id=case_study_id,
-                last_activity__gte=start_date,
-                last_activity__lte=end_date
-            ).count() if case_study_id else Session.objects.count()
-            total_grades = Grade.objects(
-                case_study=case_study,
-                timestamp__gte=start_date,
-                timestamp__lte=end_date
-            ).count() if case_study_id else Grade.objects.count()
+            filters = {
+                'timestamp__gte': start_date,
+                'timestamp__lte': end_date,
+                'case_study': case_study
+            }
+
+            filters_sessions = {
+                'case_study_id': case_study_id,
+                'start_time__gte': start_date,
+                'start_time__lte': end_date
+            }
+
+            total_case_studies_completed = Grade.objects(**remove_none(filters)).aggregate(
+                {"$group": {"_id": "$case_study._id", "count": {"$sum": 1}}}
+            )
+
+            average_score = Grade.objects(**remove_none(filters)).average('final_score')
+            total_conversations = ConversationLog.objects(**remove_none(filters)).count()
+            total_sessions = Session.objects(**remove_none(filters_sessions)).count()
+            total_grades = Grade.objects(**remove_none(filters)).count()
 
             metrics = {
                 "total_students": User.objects(role=UserRole.STUDENT).count(),
@@ -852,7 +869,7 @@ def init_routes(app):
                 "total_conversations": total_conversations,
                 "total_sessions": total_sessions,
                 "total_grades": total_grades,
-                "average_score": average_score.to_list()[0]['average_score'] if average_score else 0,
+                "average_score": round(average_score, 2) if average_score else 0,
                 "total_case_studies_completed": sum(
                     item['count'] for item in total_case_studies_completed
                 ) if total_case_studies_completed else 0,
@@ -883,28 +900,16 @@ def init_routes(app):
             end_date = request.args.get('end_date')
             case_study_id = request.args.get('case_study_id')
 
-            if not start_date:
-                # Get metrics for all time
-                start_date = datetime.datetime.min.isoformat()
-
-            if not end_date:
-                end_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-            # Convert dates to datetime objects
-            start_date = datetime.datetime.fromisoformat(start_date)
-            end_date = datetime.datetime.fromisoformat(end_date)
+            case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
 
             # Aggregate grades by date
-            grades_metrics = Grade.objects.aggregate(
-                {
-                    "$match": {
-                        "timestamp": {
-                            "$gte": start_date,
-                            "$lte": end_date
-                        },
-                        "case_study": {"$exists": True} if case_study_id is None else {"$eq": case_study_id}
-                    }
-                },
+            grades_metrics = Grade.objects(
+                **remove_none({
+                    'timestamp__gte': start_date,
+                    'timestamp__lte': end_date,
+                    'case_study': case_study
+                })
+            ).aggregate(
                 {
                     "$group": {
                         "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
@@ -941,6 +946,54 @@ def init_routes(app):
             return jsonify({
                 "status": "error",
                 "message": "An error occurred while fetching grades metrics"
+            }), 500
+
+    @app.route('/students/<student_id>/activity-logs', methods=['GET'])
+    @token_required
+    def get_students_activity_logs(student_id):
+        """Get student activity logs"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            # Get the student by ID
+            student = User.objects(id=student_id).first() if student_id != 'all' else None
+
+            case_study_id = request.args.get('case_study_id')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+
+            case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
+
+            filters = {
+                'timestamp__gte': start_date,
+                'timestamp__lte': end_date,
+                'case_study': case_study,
+                'user': student
+            }
+
+            # Get the activity logs for all users
+            activity_logs = Grade.objects(
+                **remove_none(filters)
+            ).order_by('-timestamp').limit(5)
+
+            formatted_logs = []
+            for log in activity_logs:
+                formatted_logs.append({
+                    "timestamp": log.timestamp.isoformat(),
+                    "title": f"{log.user.name} just completed '{log.case_study.title}'",
+                })
+
+            return jsonify({
+                "status": "success",
+                "logs": formatted_logs
+            })
+
+        except Exception as e:
+            logger.error(f"Error in get_user_activity_logs: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching activity logs"
             }), 500
 
     @app.route('/admin/case-studies', methods=['POST'])

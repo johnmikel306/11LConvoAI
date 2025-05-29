@@ -26,7 +26,7 @@ class PerformanceItemDocument(EmbeddedDocument):
     description = StringField(required=True)
 
 
-class UserRole(Enum):
+class UserRole(str, Enum):
     """
     Enum for user roles.
     """
