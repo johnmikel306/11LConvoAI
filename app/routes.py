@@ -2,6 +2,7 @@ import datetime
 import os
 
 import jwt
+from bson import ObjectId
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
 from flask import jsonify, render_template, request, g
@@ -364,29 +365,32 @@ def init_routes(app):
             per_page = int(request.args.get('per_page', 10))
 
             # Get filter parameters
-            filter_assessment_date_range = request.args.get('assessment_date')
-            filter_case_study_id = request.args.get('case_study_id')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            case_study_id = request.args.get('case_study_id')
 
             assessment_date_filter_pipeline = [
                 {
                     "$match": {
-                        "timestamp": {
-                            "$gte": filter_assessment_date_range.split(',')[0],
-                            "$lte": filter_assessment_date_range.split(',')[1]
+                        "$expr": {
+                            "$and": [
+                                {"$gte": ["$grades.last_assessment_date", datetime.datetime.fromisoformat(start_date)]},
+                                {"$lte": ["$grades.last_assessment_date", datetime.datetime.fromisoformat(end_date)]}
+                            ]
                         }
                     }
                 }
-            ] if filter_assessment_date_range else []
+            ] if start_date and end_date else []
 
             case_study_id_filter_pipeline = [
                 {
                     "$match": {
                         "$expr": {
-                            "$eq": ["$case_study._id", filter_case_study_id]
+                            "$eq": ["$grades.case_study", ObjectId(case_study_id)]
                         }
                     }
                 }
-            ] if filter_case_study_id else []
+            ] if case_study_id else []
 
             pagination_pipeline = [
                 {
@@ -401,23 +405,22 @@ def init_routes(app):
                 {
                     "$lookup": {
                         "from": "grades",
-                        "let": {"user": "$user"},
+                        "let": {"userId": "$_id"},
                         "pipeline": [
                             {
                                 "$match": {
                                     "$expr": {
-                                        "$eq": ["$user.email", "$$user.email"]
+                                        "$eq": ["$user", "$$userId"]
                                     }
                                 }
                             },
-                            *assessment_date_filter_pipeline,
-                            *case_study_id_filter_pipeline,
                             {
                                 "$group": {
-                                    "_id": None,
+                                    "_id": "$user",
                                     "average_score": {"$avg": "$final_score"},
                                     "last_assessment_date": {"$max": "$timestamp"},
                                     "total_sessions": {"$sum": 1},
+                                    "case_study": {"$first": "$case_study"},
                                 }
                             }
                         ],
@@ -430,7 +433,23 @@ def init_routes(app):
                         "preserveNullAndEmptyArrays": True
                     }
                 },
-                *pagination_pipeline
+                *assessment_date_filter_pipeline,
+                *case_study_id_filter_pipeline,
+                *pagination_pipeline,
+                {
+                    "$project": {
+                        "_id": 0,
+                        "id": "$_id",
+                        "email": 1,
+                        "name": 1,
+                        "role": 1,
+                        "title": 1,
+                        "department": 1,
+                        "last_assessment_date": "$grades.last_assessment_date",
+                        "total_sessions": "$grades.total_sessions",
+                        "average_score": "$grades.average_score"
+                    }
+                }
             ]
 
             # Get all students from the database
@@ -442,15 +461,16 @@ def init_routes(app):
             formatted_students = []
             for student in students:
                 formatted_students.append({
-                    "id": str(student.id),
-                    "email": student.email,
-                    "name": student.name,
-                    "role": student.role,
-                    "title": student.title,
-                    "department": student.department,
-                    "last_assessment_date": student.grades.get('last_assessment_date', None),
-                    "sessions_completed": student.grades.get('total_sessions', 0),
-                    "average_score": student.grades.get('average_score', 0),
+                    "id": str(student.get('id')),
+                    "email": student.get('email'),
+                    "name": student.get('name'),
+                    "role": student.get('role'),
+                    "title": student.get('title'),
+                    "department": student.get('department'),
+                    "lastAssessmentDate": student.get('last_assessment_date', None),
+                    "sessionsCompleted": student.get('total_sessions', 0),
+                    "averageScore": round(student.get('average_score', 0), 2) if student.get(
+                        'average_score') is not None else 0
                 })
 
             return jsonify({
@@ -499,6 +519,13 @@ def init_routes(app):
                 }
             )
 
+            grades = [
+                {
+                    "case_study_id": str(grade["_id"]),
+                    "grades": grade["grades"]
+                } for grade in student_grades
+            ]
+
             # Format the student data
             formatted_student = {
                 "id": str(student.id),
@@ -507,13 +534,8 @@ def init_routes(app):
                 "role": student.role,
                 "title": student.title,
                 "sessions_count": Session.objects(user_email=student.email).count(),
-                "case_studies_count": len(student_grades),
-                "grades": [
-                    {
-                        "case_study_id": str(grade["_id"]),
-                        "grades": grade["grades"]
-                    } for grade in student_grades
-                ],
+                "case_studies_count": len(grades),
+                "grades": grades,
                 "department": student.department,
             }
 
@@ -994,6 +1016,57 @@ def init_routes(app):
             return jsonify({
                 "status": "error",
                 "message": "An error occurred while fetching activity logs"
+            }), 500
+
+    @app.route('/students/<student_id>/case-studies', methods=['GET'])
+    @token_required
+    def get_student_case_studies(student_id):
+        """Get case studies for a specific student"""
+        try:
+            if not g.data:
+                return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+            lean = int(request.args.get('lean', 0))
+
+            # Find the student by ID
+            student = User.objects(id=student_id).first()
+
+            if not student:
+                return jsonify({"status": "error", "message": "Student not found"}), 404
+
+            # Get all case studies for the student
+            grades = Grade.objects(user=student).aggregate(
+                {
+                    "$group": {
+                        "_id": "$case_study._id",
+                        "title": {"$first": "$case_study.title"},
+                        "noOfAttempts": {"$sum": 1},
+                        "averageScore": {"$avg": "$final_score"},
+                    }
+                }
+            )
+
+            # Format the case studies data
+            formatted_case_studies = []
+            for grade in grades:
+                formatted_case_studies.append({
+                    "id": str(grade.id),
+                    "title": grade.title,
+                    "timestamp": grade.get('timestamp', None),
+                    "noOfAttempts": grade.get('noOfAttempts', 0),
+                    "averageScore": round(grade.get('averageScore', 0), 2)
+                })
+
+            return jsonify({
+                "status": "success",
+                "case_studies": formatted_case_studies
+            })
+
+        except Exception as e:
+            logger.error(f"Error in /students/{student_id}/case-studies: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": "An error occurred while fetching case studies"
             }), 500
 
     @app.route('/admin/case-studies', methods=['POST'])
