@@ -136,14 +136,16 @@ def init_routes(app):
 
         service_url = "https://miva-mind.vercel.app/auth/cas/callback"
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
-        user_email = validate_service_ticket(ticket, service_url)
+        user = validate_service_ticket(ticket, service_url)
 
-        if not user_email:
+        if not user:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
-        create_user(user_email)
+        user_name = user.firstname + " " + user.lastname
+        created_user = create_user(user.email, None, user_name, UserRole.STUDENT)
         token = jwt.encode({
-            'email': user_email,
+            'id': created_user.id,
+            'email': user.email,
             'role': 'student',
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
         }, os.getenv('JWT_SECRET'), algorithm='HS256')
@@ -276,6 +278,7 @@ def init_routes(app):
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
 
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
             # Format the user data
             formatted_user = {
                 "id": str(user.id),
@@ -284,8 +287,8 @@ def init_routes(app):
                 "role": user.role,
                 "title": user.title,
                 "department": user.department,
-                "date_added": user.date_added.isoformat(),
-                "date_updated": user.date_updated.isoformat()
+                "date_added": user.date_added.isoformat() if user.date_added else now,
+                "date_updated": user.date_updated.isoformat() if user.date_updated else now,
             }
 
             return jsonify({
@@ -369,6 +372,7 @@ def init_routes(app):
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
             case_study_id = request.args.get('case_study_id')
+            q = request.args.get("q")
 
             assessment_date_filter_pipeline = [
                 {
@@ -392,6 +396,19 @@ def init_routes(app):
                     }
                 }
             ] if case_study_id else []
+
+            search_filter_pipeline = [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$or": [
+                                {"$regexMatch": {"input": '$email', "regex": q, "options": 'i'}},
+                                {"$regexMatch": {"input": '$name', "regex": q, "options": 'i'}},
+                            ]
+                        }
+                    }
+                }
+            ] if q else []
 
             pagination_pipeline = [
                 {
@@ -436,6 +453,7 @@ def init_routes(app):
                 },
                 *assessment_date_filter_pipeline,
                 *case_study_id_filter_pipeline,
+                *search_filter_pipeline,
                 *pagination_pipeline,
                 {
                     "$project": {

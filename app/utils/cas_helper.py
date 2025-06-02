@@ -24,7 +24,6 @@ def validate_service_ticket(ticket, service_url):
         'format': 'json'
     }
 
-    print("Tickate: \n", ticket, "CAS_SERVICE_VALIDATE_URL: \n", CAS_SERVICE_VALIDATE_URL)
     response = requests.get(CAS_SERVICE_VALIDATE_URL, params=params)
     
     logger.info(f"CAS Validation Response: {response.text}")
@@ -33,7 +32,12 @@ def validate_service_ticket(ticket, service_url):
         try:
             data = response.json()
             if data.get('serviceResponse', {}).get('authenticationSuccess'):
-                return data['serviceResponse']['authenticationSuccess']['user']
+                user_email = data['serviceResponse']['authenticationSuccess']['user']
+                return {
+                    "email": data['serviceResponse']['authenticationSuccess']['email'],
+                    "firstname": data['serviceResponse']['authenticationSuccess']['firstname'],
+                    "lastname": data['serviceResponse']['authenticationSuccess']['lastname']
+                } if user_email else None
         except ValueError:
        
             root = ET.fromstring(response.text)
