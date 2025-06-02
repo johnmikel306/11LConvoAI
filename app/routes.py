@@ -216,6 +216,7 @@ def init_routes(app):
                 return jsonify({"status": "error", "message": "Wrong email/password"}), 401
             # Create a JWT token for the user
             token = jwt.encode({
+                'id': str(user.id),
                 'email': user_email,
                 'role': user.role,
                 'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
