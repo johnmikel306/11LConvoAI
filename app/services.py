@@ -48,12 +48,16 @@ def get_signed_url_with_case_study(case_study_id=None):
 def create_user(email, password=None, name=None, role=UserRole.STUDENT, **kwargs):
     existing_user = User.find_by_email(str(email))
 
-    hashed_password = hash_password(str(password)) if password else None
-
     if existing_user:
         logger.info(f"User with email {str(email)} already exists.")
+        # update user's name
+        if name is not None:
+            existing_user.name = name
+
+        existing_user.save()
         return existing_user
 
+    hashed_password = hash_password(str(password)) if password else None
     user = User(
         email=str(email),
         name=str(email.split('@')[0]) if not name else str(name),
