@@ -141,11 +141,11 @@ def init_routes(app):
         if not user:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
-        user_name = user.firstname + " " + user.lastname
-        created_user = create_user(user.email, None, user_name, UserRole.STUDENT)
+        user_name = user['firstname'] + " " + user['lastname']
+        created_user = create_user(user['email'], None, user_name, UserRole.STUDENT)
         token = jwt.encode({
-            'id': created_user.id,
-            'email': user.email,
+            'id': str(created_user.id),
+            'email': user['email'],
             'role': 'student',
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
         }, os.getenv('JWT_SECRET'), algorithm='HS256')
