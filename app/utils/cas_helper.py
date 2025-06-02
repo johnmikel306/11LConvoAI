@@ -40,15 +40,39 @@ def validate_service_ticket(ticket, service_url):
                     "lastname": user_last_name
                 } if user_email else None
         except ValueError:
+            logger.info("Response was not JSON, attempting XML parsing.")
+            try:
+                root = ET.fromstring(response.text)
+                namespace = {'cas': 'http://www.yale.edu/tp/cas'}
 
-            root = ET.fromstring(response.text)
-            namespace = {'cas': 'http://www.yale.edu/tp/cas'}
-            user_email = root.find('.//cas:authenticationSuccess/cas:email', namespace)
-            user_first_name = root.find('.//cas:authenticationSuccess/cas:firstname', namespace)
-            user_last_name = root.find('.//cas:authenticationSuccess/cas:lastname', namespace)
-            return {
-                "email": user_email.text,
-                "firstname": user_first_name.text if user_first_name is not None else None,
-                "lastname": user_last_name.text if user_last_name is not None else None
-            } if user_email is not None else None
+                auth_success_node = root.find('cas:authenticationSuccess', namespace) # More direct path from root
+                if auth_success_node is None: # Try with .// if structure can be deeper
+                    auth_success_node = root.find('.//cas:authenticationSuccess', namespace)
+
+                if auth_success_node is not None:
+                    user_email_node = auth_success_node.find('cas:user', namespace)
+                    user_email_text = user_email_node.text if user_email_node is not None else None
+
+                    attributes_node = auth_success_node.find('cas:attributes', namespace)
+                    user_first_name_text = None
+                    user_last_name_text = None
+
+                    if attributes_node is not None:
+                        first_name_node = attributes_node.find('cas:firstname', namespace)
+                        if first_name_node is not None:
+                            user_first_name_text = first_name_node.text
+
+                        last_name_node = attributes_node.find('cas:lastname', namespace)
+                        if last_name_node is not None:
+                            user_last_name_text = last_name_node.text
+
+                    if user_email_text:
+                        return {
+                            "email": user_email_text,
+                            "firstname": user_first_name_text,
+                            "lastname": user_last_name_text
+                        }
+            except ET.ParseError:
+                logger.error("Failed to parse XML response.")
+
     return None
