@@ -335,6 +335,7 @@ def init_routes(app):
 
             user.save()
 
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
             return jsonify({
                 "status": "success",
                 "message": "User updated successfully",
@@ -345,8 +346,8 @@ def init_routes(app):
                     "role": user.role,
                     "title": user.title,
                     "department": user.department,
-                    "date_added": user.date_added.isoformat(),
-                    "date_updated": user.date_updated.isoformat()
+                    "date_added": user.date_added.isoformat() if user.date_added else now,
+                    "date_updated": user.date_updated.isoformat() if user.date_updated else now,
                 }
             })
 
@@ -1048,14 +1049,21 @@ def init_routes(app):
 
             lean = int(request.args.get('lean', 0))
 
-            # Find the student by ID
-            student = User.objects(id=student_id).first()
-
-            if not student:
-                return jsonify({"status": "error", "message": "Student not found"}), 404
-
             # Get all case studies for the student
-            grades = Grade.objects(user=student).aggregate(
+            pipeline = [
+                {
+                    "$match": {
+                        "user": ObjectId(student_id),
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "case_studies",
+                        "localField": "case_study",
+                        "foreignField": "_id",
+                        "as": "case_study"
+                    }
+                },
                 {
                     "$group": {
                         "_id": "$case_study._id",
@@ -1064,14 +1072,15 @@ def init_routes(app):
                         "averageScore": {"$avg": "$final_score"},
                     }
                 }
-            )
+            ]
+            grades = Grade.objects.aggregate(pipeline)
 
             # Format the case studies data
             formatted_case_studies = []
             for grade in grades:
                 formatted_case_studies.append({
-                    "id": str(grade.id),
-                    "title": grade.title,
+                    "id": str(grade.get('_id')[0]),
+                    "title": grade.get('title'),
                     "timestamp": grade.get('timestamp', None),
                     "noOfAttempts": grade.get('noOfAttempts', 0),
                     "averageScore": round(grade.get('averageScore', 0), 2)
