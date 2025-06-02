@@ -177,12 +177,12 @@ def init_routes(app):
         """Register a new user"""
         try:
             # Get the user email and password from the request
-            data = request.json()
-            if not data or 'email' not in data or not data['password']:
-                return jsonify({"status": "error", "message": "Email and password are required"}), 400
-            user_email = data['email']
-            user_password = data['password']
+            data = request.json
             user_name = data.get('name', None)
+            user_email = data.get('email')
+            user_password = data.get('password')
+            if not data or 'email' not in data or 'password' not in data:
+                return jsonify({"status": "error", "message": "Email and password are required"}), 400
             # Check if the user already exists
             existing_user = User.find_by_email(user_email)
             if existing_user:
@@ -199,16 +199,17 @@ def init_routes(app):
         """Login endpoint for user authentication"""
         try:
             # Get the user email and password from the request
-            data = request.json()
-            if not data or 'email' not in data or not data['password']:
+            data = request.json
+            user_email = data.get('email')
+            user_password = data.get('password')
+            if not data or 'email' not in data or 'password' not in data:
                 return jsonify({"status": "error", "message": "Wrong email/password"}), 400
-            user_email = data['email']
-            user_password = data['password']
             # Validate the user email
             user = User.find_by_email(user_email)
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
             # Check if the password is correct
+
             if not check_password(user.password, user_password):
                 return jsonify({"status": "error", "message": "Wrong email/password"}), 401
             # Create a JWT token for the user
@@ -218,7 +219,7 @@ def init_routes(app):
                 'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
             }, os.getenv('JWT_SECRET'), algorithm='HS256')
 
-            return jsonify({"status": "success", "message": "User logged in.", token: token})
+            return jsonify({"status": "success", "message": "User logged in.", "token": token})
         except Exception as e:
             logger.error(f"Error in login: {str(e)}")
             return jsonify({"status": "error", "message": "An error occurred during login"}), 500
@@ -228,7 +229,7 @@ def init_routes(app):
         """Change user password"""
         try:
             # Get the user email and new password from the request
-            data = request.json()
+            data = request.json
             if not data or 'email' not in data or not data['newPassword'] or not data['oldPassword']:
                 return jsonify({"status": "error", "message": "Email, old and new password are required"}), 400
             user_email = data['email']
