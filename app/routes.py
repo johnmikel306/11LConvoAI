@@ -136,14 +136,16 @@ def init_routes(app):
 
         service_url = os.getenv('CAS_SERVICE_URL')
         logger.info(f"Validating ticket: {ticket} with service URL: {service_url}")
-        user_email = validate_service_ticket(ticket, service_url)
+        user = validate_service_ticket(ticket, service_url)
 
-        if not user_email:
+        if not user:
             return jsonify({"status": "error", "message": "Invalid ticket"}), 401
 
-        create_user(user_email)
+        user_name = user['firstname'] + " " + user['lastname']
+        created_user = create_user(user['email'], None, user_name, UserRole.STUDENT)
         token = jwt.encode({
-            'email': user_email,
+            'id': str(created_user.id),
+            'email': user['email'],
             'role': 'student',
             'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
         }, os.getenv('JWT_SECRET'), algorithm='HS256')
@@ -177,12 +179,12 @@ def init_routes(app):
         """Register a new user"""
         try:
             # Get the user email and password from the request
-            data = request.json()
-            if not data or 'email' not in data or not data['password']:
-                return jsonify({"status": "error", "message": "Email and password are required"}), 400
-            user_email = data['email']
-            user_password = data['password']
+            data = request.json
             user_name = data.get('name', None)
+            user_email = data.get('email')
+            user_password = data.get('password')
+            if not data or 'email' not in data or 'password' not in data:
+                return jsonify({"status": "error", "message": "Email and password are required"}), 400
             # Check if the user already exists
             existing_user = User.find_by_email(user_email)
             if existing_user:
@@ -199,26 +201,28 @@ def init_routes(app):
         """Login endpoint for user authentication"""
         try:
             # Get the user email and password from the request
-            data = request.json()
-            if not data or 'email' not in data or not data['password']:
+            data = request.json
+            user_email = data.get('email')
+            user_password = data.get('password')
+            if not data or 'email' not in data or 'password' not in data:
                 return jsonify({"status": "error", "message": "Wrong email/password"}), 400
-            user_email = data['email']
-            user_password = data['password']
             # Validate the user email
             user = User.find_by_email(user_email)
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
             # Check if the password is correct
+
             if not check_password(user.password, user_password):
                 return jsonify({"status": "error", "message": "Wrong email/password"}), 401
             # Create a JWT token for the user
             token = jwt.encode({
+                'id': str(user.id),
                 'email': user_email,
                 'role': user.role,
                 'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
             }, os.getenv('JWT_SECRET'), algorithm='HS256')
 
-            return jsonify({"status": "success", "message": "User logged in.", token: token})
+            return jsonify({"status": "success", "message": "User logged in.", "token": token})
         except Exception as e:
             logger.error(f"Error in login: {str(e)}")
             return jsonify({"status": "error", "message": "An error occurred during login"}), 500
@@ -228,7 +232,7 @@ def init_routes(app):
         """Change user password"""
         try:
             # Get the user email and new password from the request
-            data = request.json()
+            data = request.json
             if not data or 'email' not in data or not data['newPassword'] or not data['oldPassword']:
                 return jsonify({"status": "error", "message": "Email, old and new password are required"}), 400
             user_email = data['email']
@@ -275,6 +279,7 @@ def init_routes(app):
             if not user:
                 return jsonify({"status": "error", "message": "User not found"}), 404
 
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
             # Format the user data
             formatted_user = {
                 "id": str(user.id),
@@ -283,8 +288,8 @@ def init_routes(app):
                 "role": user.role,
                 "title": user.title,
                 "department": user.department,
-                "date_added": user.date_added.isoformat(),
-                "date_updated": user.date_updated.isoformat()
+                "date_added": user.date_added.isoformat() if user.date_added else now,
+                "date_updated": user.date_updated.isoformat() if user.date_updated else now,
             }
 
             return jsonify({
@@ -330,6 +335,7 @@ def init_routes(app):
 
             user.save()
 
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
             return jsonify({
                 "status": "success",
                 "message": "User updated successfully",
@@ -340,8 +346,8 @@ def init_routes(app):
                     "role": user.role,
                     "title": user.title,
                     "department": user.department,
-                    "date_added": user.date_added.isoformat(),
-                    "date_updated": user.date_updated.isoformat()
+                    "date_added": user.date_added.isoformat() if user.date_added else now,
+                    "date_updated": user.date_updated.isoformat() if user.date_updated else now,
                 }
             })
 
@@ -368,6 +374,7 @@ def init_routes(app):
             start_date = request.args.get('start_date')
             end_date = request.args.get('end_date')
             case_study_id = request.args.get('case_study_id')
+            q = request.args.get("q")
 
             assessment_date_filter_pipeline = [
                 {
@@ -391,6 +398,19 @@ def init_routes(app):
                     }
                 }
             ] if case_study_id else []
+
+            search_filter_pipeline = [
+                {
+                    "$match": {
+                        "$expr": {
+                            "$or": [
+                                {"$regexMatch": {"input": '$email', "regex": q, "options": 'i'}},
+                                {"$regexMatch": {"input": '$name', "regex": q, "options": 'i'}},
+                            ]
+                        }
+                    }
+                }
+            ] if q else []
 
             pagination_pipeline = [
                 {
@@ -435,6 +455,7 @@ def init_routes(app):
                 },
                 *assessment_date_filter_pipeline,
                 *case_study_id_filter_pipeline,
+                *search_filter_pipeline,
                 *pagination_pipeline,
                 {
                     "$project": {
@@ -1028,14 +1049,21 @@ def init_routes(app):
 
             lean = int(request.args.get('lean', 0))
 
-            # Find the student by ID
-            student = User.objects(id=student_id).first()
-
-            if not student:
-                return jsonify({"status": "error", "message": "Student not found"}), 404
-
             # Get all case studies for the student
-            grades = Grade.objects(user=student).aggregate(
+            pipeline = [
+                {
+                    "$match": {
+                        "user": ObjectId(student_id),
+                    }
+                },
+                {
+                    "$lookup": {
+                        "from": "case_studies",
+                        "localField": "case_study",
+                        "foreignField": "_id",
+                        "as": "case_study"
+                    }
+                },
                 {
                     "$group": {
                         "_id": "$case_study._id",
@@ -1044,14 +1072,15 @@ def init_routes(app):
                         "averageScore": {"$avg": "$final_score"},
                     }
                 }
-            )
+            ]
+            grades = Grade.objects.aggregate(pipeline)
 
             # Format the case studies data
             formatted_case_studies = []
             for grade in grades:
                 formatted_case_studies.append({
-                    "id": str(grade.id),
-                    "title": grade.title,
+                    "id": str(grade.get('_id')[0]),
+                    "title": grade.get('title'),
                     "timestamp": grade.get('timestamp', None),
                     "noOfAttempts": grade.get('noOfAttempts', 0),
                     "averageScore": round(grade.get('averageScore', 0), 2)
