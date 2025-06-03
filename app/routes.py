@@ -1047,8 +1047,6 @@ def init_routes(app):
             if not g.data:
                 return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
-            lean = int(request.args.get('lean', 0))
-
             # Get all case studies for the student
             pipeline = [
                 {
@@ -1070,6 +1068,10 @@ def init_routes(app):
                         "title": {"$first": "$case_study.title"},
                         "noOfAttempts": {"$sum": 1},
                         "averageScore": {"$avg": "$final_score"},
+                        "communicationScore": {"$avg": "$individual_scores.communication"},
+                        "comprehensionScore": {"$avg": "$individual_scores.comprehension"},
+                        "criticalThinkingScore": {"$avg": "$individual_scores.critical_thinking"},
+                        "timestamp": {"$max": "$timestamp"}
                     }
                 }
             ]
@@ -1079,11 +1081,14 @@ def init_routes(app):
             formatted_case_studies = []
             for grade in grades:
                 formatted_case_studies.append({
-                    "id": str(grade.get('_id')[0]),
-                    "title": grade.get('title'),
+                    "id": str(grade.get('_id')[0] if len(grade.get('_id')) > 0 else ''),
+                    "title": grade.get('title')[0] if len(grade.get('title')) > 0 else '<Deleted Case Study>',
                     "timestamp": grade.get('timestamp', None),
                     "noOfAttempts": grade.get('noOfAttempts', 0),
-                    "averageScore": round(grade.get('averageScore', 0), 2)
+                    "averageScore": round(grade.get('averageScore', 0), 2),
+                    "communicationScore": round(grade.get('communicationScore', 0), 2),
+                    "criticalThinkingScore": round(grade.get('criticalThinkingScore', 0), 2),
+                    "comprehensionScore": round(grade.get('comprehensionScore', 0), 2)
                 })
 
             return jsonify({
