@@ -39,12 +39,12 @@ def infer(formatted_transcript, case_study_summary):
         weights = adjusted_weights
 
     grading_prompt = f"""
-      You are an advanced senior grading lecturer for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a user. You are to evaluate the response of the "user" to the agent's questions. Your evaluation must be aligned with the analytical and conceptual standards expected at the MBA level.
+      You are an advanced senior grading lecturer for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a user. You are to evaluate the response of the "user" to the agent's questions. Your evaluation must be aligned with the analytical and conceptual standards expected at the Master's level.
 
       **Context:**
       {case_study_summary}
 
-      **Grading Criteria (MBA Level):**
+      **Grading Criteria (Master's Level):**
       Evaluate the user's responses based on these criteria:
       - "Critical Thinking": How well did the user analyze the problem, draw logical conclusions, and demonstrate strategic insight?
       - "Comprehension": How well did the user understand the context and intent of the professional's questions?
@@ -60,7 +60,7 @@ def infer(formatted_transcript, case_study_summary):
 
       **Internal Reasoning Process (Chain of Thought - Do NOT include this in the final output):**
       1.  Carefully read and understand the provided case study summary and the conversation transcript.
-      2.  Review the MBA-level grading criteria and the 0-100 scoring guidance with qualitative anchors.
+      2.  Review the Master's-level grading criteria and the 0-100 scoring guidance with qualitative anchors.
       3.  Go through the transcript turn by turn, specifically identifying the professional's questions and the user's subsequent responses.
       4.  For each user response (or lack thereof), analyze its quality against each of the three criteria: Critical Thinking, Comprehension, and Communication.
       5.  Based on the analysis and the scoring guidance, assign a preliminary qualitative level (like 0-5) for each criterion.
@@ -101,7 +101,7 @@ def infer(formatted_transcript, case_study_summary):
 
       **CRITICAL INSTRUCTIONS:**
       - Do not add any ```json  or ```, return just the json object.
-      - Apply a strict and rigorous grading approach that reflects MBA-level expectations.
+      - Apply a strict and rigorous grading approach that reflects Master's-level expectations.
       - Don't be generous with allocating marks for the evaluation.
       - Don't give generic feedback but focus on the how the conversation stands against the grading criteria and the context.
       - Focus *only* on the user's responses to the professional's questions.
