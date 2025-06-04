@@ -36,7 +36,7 @@ def init_routes(app):
                 g.user_info = active_session
             except Exception as e:
                 logger.error(f"Error loading session: {str(e)}")
-                g.user_info = None
+                return jsonify({"status": "error", "message": "Session has expired"}), 403
         else:
             g.user_info = None
 
@@ -95,11 +95,11 @@ def init_routes(app):
 
             # Get the signed URL using the agent_id
             client = ElevenLabs(api_key=API_KEY)
-            signed_url = client.conversational_ai.get_signed_url(agent_id=agent_id)
+            signed_url_res = client.conversational_ai.get_signed_url(agent_id=agent_id)
 
             response_data = {
                 "status": "success",
-                "signed_url": signed_url.signed_url
+                "signed_url": signed_url_res.signed_url
             }
 
             # Include case study information if available
@@ -448,8 +448,35 @@ def init_routes(app):
                     }
                 },
                 {
+                    "$lookup": {
+                        "from": "sessions",
+                        "let": {"userEmail": "$email"},
+                        "pipeline": [
+                            {
+                                "$match": {
+                                    "$expr": {
+                                        "$eq": ["$user_email", "$$userEmail"]
+                                    }
+                                }
+                            },
+                            {
+                                "$group": {
+                                    "_id": None,
+                                    "total_sessions": {"$count": 1},
+                                }
+                            }
+                        ],
+                        "as": "sessions"
+                    }
+                },
+                {
                     "$unwind": {
                         "path": "$grades",
+                        "preserveNullAndEmptyArrays": True
+                    }
+                }, {
+                    "$unwind": {
+                        "path": "$sessions",
                         "preserveNullAndEmptyArrays": True
                     }
                 },
@@ -467,7 +494,7 @@ def init_routes(app):
                         "title": 1,
                         "department": 1,
                         "last_assessment_date": "$grades.last_assessment_date",
-                        "total_sessions": "$grades.total_sessions",
+                        "total_sessions": "$sessions.total_sessions",
                         "average_score": "$grades.average_score"
                     }
                 }
@@ -587,12 +614,19 @@ def init_routes(app):
             case_study_id = active_session.case_study_id if active_session else None
             case_study = None
 
+            data = request.json
+            transcript = data.get('transcripts')
+
             # If we have a case study ID, get the case study
             if case_study_id:
                 case_study = CaseStudy.objects(id=case_study_id).first()
 
+            graded_result = Grade.find_by_conversation_id(conversation_id)
+
             # Grade the conversation, passing the case study if available
-            grading_result = grade_conversation(conversation_id, user_email, case_study)
+            grading_result = graded_result.to_json() if graded_result else grade_conversation(conversation_id,
+                                                                                              user_email, case_study,
+                                                                                              transcript)
 
             # Grading means a session is completed
             active_session = Session.find_active_by_email(user_email)
