@@ -5,7 +5,7 @@ import jwt
 from bson import ObjectId
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
-from flask import jsonify, render_template, request, g
+from flask import jsonify, render_template, request, g, Response
 
 from app.utils.jwt import token_required
 from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole
@@ -376,6 +376,11 @@ def init_routes(app):
             case_study_id = request.args.get('case_study_id')
             q = request.args.get("q")
 
+            # Get export parameters
+            export_format = request.args.get('export_format', 'json')
+            export_filename = request.args.get('export_filename', 'students')
+            export_mode = request.args.get('export_mode', 'page')
+
             assessment_date_filter_pipeline = [
                 {
                     "$match": {
@@ -419,91 +424,95 @@ def init_routes(app):
                 {
                     "$limit": per_page
                 }
-            ] if per_page > 0 and page > 0 else []
+            ] if per_page > 0 and page > 0 and export_mode == 'page' else []
 
-            pipeline = [
-                {
-                    "$lookup": {
-                        "from": "grades",
-                        "let": {"userId": "$_id"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$eq": ["$user", "$$userId"]
+            def get_pipeline_stages(count=False):
+                return [
+                    {
+                        "$lookup": {
+                            "from": "grades",
+                            "let": {"userId": "$_id"},
+                            "pipeline": [
+                                {
+                                    "$match": {
+                                        "$expr": {
+                                            "$eq": ["$user", "$$userId"]
+                                        }
+                                    }
+                                },
+                                {
+                                    "$group": {
+                                        "_id": "$user",
+                                        "average_score": {"$avg": "$final_score"},
+                                        "last_assessment_date": {"$max": "$timestamp"},
+                                        "total_sessions": {"$sum": 1},
+                                        "case_study": {"$max": "$case_study"},
                                     }
                                 }
-                            },
-                            {
-                                "$group": {
-                                    "_id": "$user",
-                                    "average_score": {"$avg": "$final_score"},
-                                    "last_assessment_date": {"$max": "$timestamp"},
-                                    "total_sessions": {"$sum": 1},
-                                    "case_study": {"$first": "$case_study"},
-                                }
-                            }
-                        ],
-                        "as": "grades"
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "sessions",
-                        "let": {"userEmail": "$email"},
-                        "pipeline": [
-                            {
-                                "$match": {
-                                    "$expr": {
-                                        "$eq": ["$user_email", "$$userEmail"]
+                            ],
+                            "as": "grades"
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "sessions",
+                            "let": {"userEmail": "$email"},
+                            "pipeline": [
+                                {
+                                    "$match": {
+                                        "$expr": {
+                                            "$eq": ["$user_email", "$$userEmail"]
+                                        }
+                                    }
+                                },
+                                {
+                                    "$group": {
+                                        "_id": None,
+                                        "total_sessions": {"$count": {}},
                                     }
                                 }
-                            },
-                            {
-                                "$group": {
-                                    "_id": None,
-                                    "total_sessions": {"$count": 1},
-                                }
-                            }
-                        ],
-                        "as": "sessions"
+                            ],
+                            "as": "sessions"
+                        }
+                    },
+                    {
+                        "$unwind": {
+                            "path": "$grades",
+                            "preserveNullAndEmptyArrays": True
+                        }
+                    },
+                    {
+                        "$unwind": {
+                            "path": "$sessions",
+                            "preserveNullAndEmptyArrays": True
+                        }
+                    },
+                    *assessment_date_filter_pipeline,
+                    *case_study_id_filter_pipeline,
+                    *search_filter_pipeline,
+                    *(pagination_pipeline if not count else []),
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "id": "$_id",
+                            "email": 1,
+                            "name": 1,
+                            "role": 1,
+                            "title": 1,
+                            "department": 1,
+                            "last_assessment_date": "$grades.last_assessment_date",
+                            "total_sessions": "$sessions.total_sessions",
+                            "average_score": "$grades.average_score"
+                        }
+                    } if not count else {
+                        "$count": "count"
                     }
-                },
-                {
-                    "$unwind": {
-                        "path": "$grades",
-                        "preserveNullAndEmptyArrays": True
-                    }
-                }, {
-                    "$unwind": {
-                        "path": "$sessions",
-                        "preserveNullAndEmptyArrays": True
-                    }
-                },
-                *assessment_date_filter_pipeline,
-                *case_study_id_filter_pipeline,
-                *search_filter_pipeline,
-                *pagination_pipeline,
-                {
-                    "$project": {
-                        "_id": 0,
-                        "id": "$_id",
-                        "email": 1,
-                        "name": 1,
-                        "role": 1,
-                        "title": 1,
-                        "department": 1,
-                        "last_assessment_date": "$grades.last_assessment_date",
-                        "total_sessions": "$sessions.total_sessions",
-                        "average_score": "$grades.average_score"
-                    }
-                }
-            ]
+                ]
 
             # Get all students from the database
             # WARNING: we are not paginating the students here because we are not adding the filters
             # to the query. This means that if we have a lot of students, this could be a performance issue.
-            students = User.objects(role=UserRole.STUDENT).aggregate(pipeline)
+            students = User.objects(role=UserRole.STUDENT).aggregate(get_pipeline_stages())
 
             # Format the student data
             formatted_students = []
@@ -521,13 +530,27 @@ def init_routes(app):
                         'average_score') is not None else 0
                 })
 
+            if export_format == 'csv':
+                # Create a CSV string from the user data
+                csv_data = "ID,Name,Email,Last Assessment Date,Sessions Completed,Average Score\n"
+                for student in formatted_students:
+                    csv_data += f"{student['id']},{student['name']},{student['email']},{student['lastAssessmentDate']},{student['sessionsCompleted']},{student['averageScore']}\n"
+
+                # Create a direct download response with the CSV data and appropriate headers
+                response = Response(csv_data, content_type="text/csv")
+                response.headers["Content-Disposition"] = f"attachment; filename={export_filename}.csv"
+
+                return response
+
+            total = User.objects(role=UserRole.STUDENT).aggregate(get_pipeline_stages(True)).to_list()
+
             return jsonify({
                 "status": "success",
                 "data": formatted_students,
                 "meta": {
                     "page": page,
                     "per_page": per_page,
-                    "total": User.objects(role=UserRole.STUDENT).count(),
+                    "total": total[0].get('count') if len(total) > 0 else 0,
                 }
             })
 
