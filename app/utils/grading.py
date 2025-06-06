@@ -136,7 +136,7 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
 
     try:
         client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = client.conversational_ai.get_conversation(conversation_id)
+        conversation = elevenlabs_client.conversational_ai.conversations.get(conversation_id)
         transcript = conversation.transcript
     except:
         logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
