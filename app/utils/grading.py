@@ -3,7 +3,7 @@ import os
 import time
 
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
+from elevenlabs import ElevenLabs
 from google import genai
 from google.genai import types
 
@@ -116,7 +116,7 @@ def infer(formatted_transcript, case_study_summary):
     client = genai.Client(api_key=GOOGLE_API_KEY)
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-04-17",
+        model="gemini-2.5-flash-preview-05-20",
         contents=grading_prompt,
         config=types.GenerateContentConfig(
             thinking_config=types.ThinkingConfig(thinking_budget=2048),
@@ -147,7 +147,7 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         except:
             logger.info("sleeeepinggg even moreeeeeeeeee.......  " + conversation_id)
             time.sleep(15)
-            conversation = client.conversational_ai.get_conversation(conversation_id)
+            conversation = elevenlabs_client.conversational_ai.conversation.get(conversation_id)
 
     transcript = conversation.transcript
 
