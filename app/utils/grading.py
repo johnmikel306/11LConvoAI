@@ -122,7 +122,7 @@ def infer(formatted_transcript, case_study_summary):
 
 
 def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
-                       transcript_from_user: str = None):
+                       transcript_from_user: list = None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
@@ -135,9 +135,10 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         transcript = conversation.transcript
     except:
         logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
-        if transcript_from_user:
-            transcript = transcript_from_user
-        
+    
+    if (not transcript) and transcript_from_user:
+        transcript = transcript_from_user
+
     if not transcript:
         logger.error("Transcript is empty or missing")
         return {"error":"Transcript is empty or missing"}

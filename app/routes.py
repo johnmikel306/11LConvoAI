@@ -587,12 +587,17 @@ def init_routes(app):
             case_study_id = active_session.case_study_id if active_session else None
             case_study = None
 
+            data = request.json
+            transcript = data.get('transcripts')
+
             # If we have a case study ID, get the case study
             if case_study_id:
                 case_study = CaseStudy.objects(id=case_study_id).first()
 
+            graded_result = Grade.find_by_conversation_id(conversation_id)
+
             # Grade the conversation, passing the case study if available
-            grading_result = grade_conversation(conversation_id, user_email, case_study)
+            grading_result = grade_conversation(conversation_id, user_email, case_study, transcript)
 
             # Grading means a session is completed
             active_session = Session.find_active_by_email(user_email)
