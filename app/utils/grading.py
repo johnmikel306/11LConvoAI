@@ -126,20 +126,29 @@ def infer(formatted_transcript, case_study_summary):
     return response.text
 
 
-def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
-                       transcript_from_user: str = None):
+def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
 
-    transcript = transcript_from_user
+    graded_result = Grade.find_by_conversation_id(conversation_id)
+    if graded_result:
+        return graded_result.to_json()
 
+    client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
     try:
-        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = elevenlabs_client.conversational_ai.conversations.get(conversation_id)
-        transcript = conversation.transcript
+        conversation = client.conversational_ai.conversations.get(conversation_id)
     except:
-        logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
+        logger.info("sleeeepinggg.......  " + conversation_id)
+        time.sleep(10)
+        try:
+            conversation = client.conversational_ai.conversations.get(conversation_id)
+        except:
+            logger.info("sleeeepinggg even moreeeeeeeeee.......  " + conversation_id)
+            time.sleep(10)
+            conversation = elevenlabs_client.conversational_ai.conversations.get(conversation_id)
+
+    transcript = conversation.transcript
 
     formatted_transcript = []
     for message in transcript:
@@ -168,8 +177,7 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         print(grading_response)
         grading_result = next(extract_json(grading_response))
 
-    Grade.create_grade(user=user, conversation_id=conversation_id, overall_summary=grading_result["overall_summary"],
-                       final_score=int(grading_result["final_score"]),
+    Grade.create_grade(user=user, conversation_id=conversation_id, overall_summary=grading_result["overall_summary"], final_score=int(grading_result["final_score"]),
                        individual_scores=grading_result["individual_scores"],
                        performance_summary=grading_result["performance_summary"], case_study=case_study)
 
