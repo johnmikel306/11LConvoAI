@@ -9,7 +9,7 @@ from ..utils.logger import logger
 
 def setup_db():
     """
-    Initialize database connection using MongoEngine.
+    Initialize database connection using Mongo Engine.
     """
     load_dotenv()
 
