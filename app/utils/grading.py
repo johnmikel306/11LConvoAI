@@ -15,7 +15,6 @@ load_dotenv()
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 
-
 def infer(formatted_transcript, case_study_summary):
     """
     Grade the conversation transcript using the Gemini API.
@@ -129,7 +128,7 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
 
     try:
         client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = client.conversational_ai.conversations.get(conversation_id)
+        conversation = elevenlabs_client.conversational_ai.conversations.get(conversation_id)
         transcript = conversation.transcript
     except:
         logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")

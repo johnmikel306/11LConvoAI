@@ -11,7 +11,7 @@ motor==3.7.0
 pymongo==4.11.2
 
 # ElevenLabs Integration
-elevenlabs==2.1.0
+elevenlabs==1.52.0
 google-genai==1.13.0
 
 # Authentication & Security
