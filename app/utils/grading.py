@@ -2,28 +2,23 @@ import json
 import os
 
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
 from google import genai
 from google.genai import types
 
 from app.models import ConversationLog, User, Grade, CaseStudy
 from app.utils.perser import extract_json
+from .elevenlabs import get_conversation
 from ..utils.logger import logger
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-
-from groq import Groq
-
-groq_client = Groq(api_key=GROQ_API_KEY)
 
 
 def infer(formatted_transcript, case_study_summary):
     """
-    Grade the conversation transcript using the Groq API.
+    Grade the conversation transcript using the Gemini API.
     """
 
     weights = {
@@ -126,41 +121,38 @@ def infer(formatted_transcript, case_study_summary):
     return response.text
 
 
-def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
-                       transcript_from_user=None):
+def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy,
+                       transcript_from_user: list = None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
-    try:
-        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = client.conversational_ai.conversations.get(conversation_id)
-        transcript = conversation.transcript
-    except:
-        logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
+    conversation = get_conversation(conversation_id)
+    transcript = conversation.get("transcript") if conversation else transcript_from_user
 
-    if transcript:
-        formatted_transcript = []
-        for message in transcript:
-            formatted_transcript.append({
-                "role": message.role,
-                "message": message.message
-            })
+    if not transcript:
+        logger.error("Transcript is empty or missing")
+        return None
+
+    formatted_transcript = []
+    for message in transcript:
+        role = message["role"] if isinstance(message, dict) else getattr(message, "role", None)
+        msg = message["message"] if isinstance(message, dict) else getattr(message, "message", None)
+        formatted_transcript.append({
+            "role": role,
+            "message": msg
+        })
 
     user = User.find_by_email(user_email)
 
-    if not user:
-        user = User.create(name=user_email.split("@")[0], email=user_email, role="student")
-        logger.info(f"Created user: {user}")
-
-    all_transcript = formatted_transcript if len(formatted_transcript) > 0 else transcript_from_user
-
-    ConversationLog.create_log(
-        user=user,
-        conversation_id=conversation_id,
-        case_study=case_study,
-        transcript=all_transcript
-    )
-    grading_response = infer(all_transcript, case_study.description)
+    existing_log = ConversationLog.find_by_conversation_id(conversation_id)
+    if not existing_log:
+        ConversationLog.create_log(
+            user=user,
+            conversation_id=conversation_id,
+            case_study=case_study,
+            transcript=formatted_transcript
+        )
+    grading_response = infer(formatted_transcript, case_study.description)
 
     try:
         grading_result = json.loads(grading_response)
@@ -168,9 +160,16 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         print(grading_response)
         grading_result = next(extract_json(grading_response))
 
-    Grade.create_grade(user=user, conversation_id=conversation_id, overall_summary=grading_result["overall_summary"],
-                       final_score=int(grading_result["final_score"]),
-                       individual_scores=grading_result["individual_scores"],
-                       performance_summary=grading_result["performance_summary"], case_study=case_study)
+    existing_grade = Grade.find_by_conversation_id(conversation_id)
+    if not existing_grade:
+        Grade.create_grade(
+            user=user,
+            conversation_id=conversation_id,
+            overall_summary=grading_result["overall_summary"],
+            final_score=int(grading_result["final_score"]),
+            individual_scores=grading_result["individual_scores"],
+            performance_summary=grading_result["performance_summary"],
+            case_study=case_study
+        )
 
     return grading_response

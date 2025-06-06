@@ -4,14 +4,14 @@ import os
 import jwt
 from bson import ObjectId
 from dotenv import load_dotenv
-from elevenlabs import ElevenLabs
-from flask import jsonify, render_template, request, g, Response
+from flask import jsonify, render_template, request, g
 
 from app.utils.jwt import token_required
 from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole
 from .services import create_user
 from .utils.auth import check_password, hash_password
 from .utils.cas_helper import validate_service_ticket
+from .utils.elevenlabs import get_signed_url, get_conversation
 from .utils.grading import grade_conversation
 from .utils.logger import logger
 from .utils.perser import remove_none
@@ -94,12 +94,10 @@ def init_routes(app):
                 session.save()
 
             # Get the signed URL using the agent_id
-            client = ElevenLabs(api_key=API_KEY)
-            signed_url_res = client.conversational_ai.get_signed_url(agent_id=agent_id)
-
+            signed_url_text = get_signed_url(agent_id)
             response_data = {
                 "status": "success",
-                "signed_url": signed_url_res.signed_url
+                "signed_url": signed_url_text,
             }
 
             # Include case study information if available
@@ -622,6 +620,15 @@ def init_routes(app):
                 "message": "An error occurred while fetching the student"
             }), 500
 
+    @app.route('/conversations/<conversation_id>', methods=['GET'])
+    @token_required
+    def get_conversation_controller(conversation_id):
+        if not g.data:
+            return jsonify({"status": "error", "message": "User not authenticated"}), 401
+
+        conversation = get_conversation(conversation_id)
+        return jsonify({"data": conversation})
+
     @app.route('/students/<student_id>/grades', methods=['GET'])
     @app.route('/grade/<conversation_id>', methods=['POST'])
     @token_required
@@ -632,24 +639,30 @@ def init_routes(app):
         try:
             user_email = g.data.email
 
-            # Find the active session to get the case study information
-            active_session = Session.find_active_by_email(user_email)
-            case_study_id = active_session.case_study_id if active_session else None
-            case_study = None
-
             data = request.json
             transcript = data.get('transcripts')
+            # Find the active session to get the case study information
+            active_session = Session.find_active_by_email(user_email)
+            case_study_id = active_session.case_study_id if active_session else (request.args.get(
+                'case_study_id') or data.get('case_study_id'))
 
             # If we have a case study ID, get the case study
-            if case_study_id:
-                case_study = CaseStudy.objects(id=case_study_id).first()
+            case_study = CaseStudy.objects(id=case_study_id).first() if case_study_id else None
 
-            graded_result = Grade.find_by_conversation_id(conversation_id)
+            if case_study is None:
+                return jsonify({
+                    "status": "error",
+                    "message": "Unable to grade: could not load case study information."
+                }), 404
 
             # Grade the conversation, passing the case study if available
-            grading_result = graded_result.to_json() if graded_result else grade_conversation(conversation_id,
-                                                                                              user_email, case_study,
-                                                                                              transcript)
+            grading_result = grade_conversation(conversation_id, user_email, case_study, transcript)
+
+            if grading_result is None:
+                return jsonify({
+                    "status": "error",
+                    "message": "Unable to grade: missing conversation transcripts"
+                })
 
             # Grading means a session is completed
             active_session = Session.find_active_by_email(user_email)
@@ -662,10 +675,10 @@ def init_routes(app):
                 "grading_result": str(grading_result)
             })
         except Exception as e:
-            logger.error(f"Error in grade_conversation_endpoint: {str(e)}")
+            logger.error(f"Error in grade_conversation_endpoint: {str(e)}", exc_info=True)
             return jsonify({
-                "status": "failed",
-                "message": "Error on the server"
+                "status": "error",
+                "message": "Unable to grade conversation. Please try again later"
             }), 500
 
     @app.route('/grades', methods=['GET'])
@@ -716,7 +729,7 @@ def init_routes(app):
             })
         except:
             return jsonify({
-                "status": "failed",
+                "status": "error",
                 "message": "failed to retrieve responses"
             }), 500
 
