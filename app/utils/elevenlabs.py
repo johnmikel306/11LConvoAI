@@ -8,11 +8,11 @@ from app.utils.logger import logger
 load_dotenv()
 
 API_KEY = os.getenv('ELEVENLABS_API_KEY')
+headers = {"Xi-Api-Key": API_KEY}
 
 
 def get_signed_url(agent_id: str) -> str | None:
     try:
-        headers = {"Xi-Api-Key": API_KEY}
         params = {"agent_id": agent_id}
         r = requests.get(f"https://api.elevenlabs.io/v1/convai/conversation/get-signed-url", params=params,
                          headers=headers)
@@ -28,7 +28,6 @@ def get_signed_url(agent_id: str) -> str | None:
 
 def get_conversation(conversation_id: str) -> dict | None:
     try:
-        headers = {"Xi-Api-Key": API_KEY}
         r = requests.get(f"https://api.elevenlabs.io//v1/convai/conversations/{conversation_id}", headers=headers)
         data = r.json()
         return data

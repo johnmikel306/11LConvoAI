@@ -12,6 +12,7 @@ from .utils.logger import logger
 
 load_dotenv()
 
+
 def create_user(email, password=None, name=None, role=UserRole.STUDENT, **kwargs):
     existing_user = User.find_by_email(str(email))
 

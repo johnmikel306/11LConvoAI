@@ -4,7 +4,7 @@ import os
 import jwt
 from bson import ObjectId
 from dotenv import load_dotenv
-from flask import jsonify, render_template, request, g
+from flask import jsonify, render_template, request, g, Response
 
 from app.utils.jwt import token_required
 from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole
