@@ -2,13 +2,12 @@ import json
 import os
 
 from dotenv import load_dotenv
-from elevenlabs.client import ElevenLabs
-from elevenlabs.conversational_ai.conversation import Conversation
 from google import genai
 from google.genai import types
 
 from app.models import ConversationLog, User, Grade, CaseStudy
 from app.utils.perser import extract_json
+from .elevenlabs import get_conversation
 from ..utils.logger import logger
 
 load_dotenv()
@@ -122,27 +121,17 @@ def infer(formatted_transcript, case_study_summary):
     return response.text
 
 
-def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
+def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy,
                        transcript_from_user: list = None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
-    transcript = None
-
-    try:
-        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = client.conversational_ai.get_conversation(conversation_id=conversation_id)
-        logger.info(f"Fetched conversation transcript for conversation ID {conversation_id}")
-        transcript = conversation.transcript
-    except:
-        logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
-    
-    if (not transcript) and transcript_from_user:
-        transcript = transcript_from_user
+    conversation = get_conversation(conversation_id)
+    transcript = conversation.get("transcript") if conversation else transcript_from_user
 
     if not transcript:
         logger.error("Transcript is empty or missing")
-        return {"error":"Transcript is empty or missing"}
+        return None
 
     formatted_transcript = []
     for message in transcript:
@@ -152,15 +141,11 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
             "role": role,
             "message": msg
         })
-        
+
     user = User.find_by_email(user_email)
 
-    if not user:
-        user = User.create(name=user_email.split("@")[0], email=user_email, role="student")
-        logger.info(f"Created user: {user}")
-
     existing_log = ConversationLog.find_by_conversation_id(conversation_id)
-    if existing_log:
+    if not existing_log:
         ConversationLog.create_log(
             user=user,
             conversation_id=conversation_id,
@@ -178,8 +163,8 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     existing_grade = Grade.find_by_conversation_id(conversation_id)
     if not existing_grade:
         Grade.create_grade(
-            user=user, 
-            conversation_id=conversation_id, 
+            user=user,
+            conversation_id=conversation_id,
             overall_summary=grading_result["overall_summary"],
             final_score=int(grading_result["final_score"]),
             individual_scores=grading_result["individual_scores"],

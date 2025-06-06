@@ -10,7 +10,6 @@ motor==3.7.0
 pymongo==4.11.2
 
 # ElevenLabs Integration
-elevenlabs==1.52.0
 groq==0.20.0
 google-genai==1.13.0
 
