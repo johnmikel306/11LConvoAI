@@ -11,8 +11,7 @@ motor==3.7.0
 pymongo==4.11.2
 
 # ElevenLabs Integration
-elevenlabs==1.52.0
-groq==0.20.0
+elevenlabs==2.1.0
 google-genai==1.13.0
 
 # Authentication & Security
@@ -66,7 +65,7 @@ parso~=0.8.4
 jedi~=0.19.2
 multidict~=6.4.3
 propcache~=0.3.1
-
+tiktoken~=0.3.3
 regex~=2024.11.6
 yarl~=1.20.0
 aiosignal~=1.3.2
