@@ -127,26 +127,24 @@ def infer(formatted_transcript, case_study_summary):
 
 
 def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
-                       transcript_from_user: str = None):
+                       transcript_from_user=None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
-
-    transcript = transcript_from_user
-
     try:
         client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-        conversation = client.conversational_ai.get_conversation(conversation_id)
+        conversation = client.conversational_ai.conversations.get(conversation_id)
         transcript = conversation.transcript
     except:
         logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
 
-    formatted_transcript = []
-    for message in transcript:
-        formatted_transcript.append({
-            "role": message.role,
-            "message": message.message
-        })
+    if transcript:
+        formatted_transcript = []
+        for message in transcript:
+            formatted_transcript.append({
+                "role": message.role,
+                "message": message.message
+            })
 
     user = User.find_by_email(user_email)
 
@@ -154,13 +152,15 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         user = User.create(name=user_email.split("@")[0], email=user_email, role="student")
         logger.info(f"Created user: {user}")
 
+    all_transcript = formatted_transcript if len(formatted_transcript) > 0 else transcript_from_user
+
     ConversationLog.create_log(
         user=user,
         conversation_id=conversation_id,
         case_study=case_study,
-        transcript=formatted_transcript
+        transcript=all_transcript
     )
-    grading_response = infer(formatted_transcript, case_study.description)
+    grading_response = infer(all_transcript, case_study.description)
 
     try:
         grading_result = json.loads(grading_response)
