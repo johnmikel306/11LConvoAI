@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
+from elevenlabs.conversational_ai.conversation import Conversation
 from google import genai
 from google.genai import types
 

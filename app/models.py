@@ -195,6 +195,13 @@ class ConversationLog(Document):
         log.save()
         return log
 
+    @classmethod
+    def find_by_conversation_id(cls, conversation_id: str):
+        """
+        Find a conversation log entry by conversation ID.
+        """
+        return cls.objects(conversation_id=conversation_id).first()
+
 
 class Session(Document):
     user_email = StringField(required=True)
