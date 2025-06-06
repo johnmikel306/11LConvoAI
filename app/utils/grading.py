@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 from dotenv import load_dotenv
 from elevenlabs import ElevenLabs
@@ -13,18 +12,13 @@ from ..utils.logger import logger
 
 load_dotenv()
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-
-from groq import Groq
-
-groq_client = Groq(api_key=GROQ_API_KEY)
 
 
 def infer(formatted_transcript, case_study_summary):
     """
-    Grade the conversation transcript using the Groq API.
+    Grade the conversation transcript using the Gemini API.
     """
 
     weights = {
@@ -39,12 +33,12 @@ def infer(formatted_transcript, case_study_summary):
         weights = adjusted_weights
 
     grading_prompt = f"""
-      You are an advanced senior grading lecturer for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a user. You are to evaluate the response of the "user" to the agent's questions. Your evaluation must be aligned with the analytical and conceptual standards expected at the MBA level.
+      You are an advanced senior grading lecturer for Miva Open University. Your role is to conduct a rigorous academic assessment of the following conversation transcript submitted by a user. You are to evaluate the response of the "user" to the agent's questions. Your evaluation must be aligned with the analytical and conceptual standards expected at the Masters level.
 
       **Context:**
       {case_study_summary}
 
-      **Grading Criteria (MBA Level):**
+      **Grading Criteria (Masters Level):**
       Evaluate the user's responses based on these criteria:
       - "Critical Thinking": How well did the user analyze the problem, draw logical conclusions, and demonstrate strategic insight?
       - "Comprehension": How well did the user understand the context and intent of the professional's questions?
@@ -60,7 +54,7 @@ def infer(formatted_transcript, case_study_summary):
 
       **Internal Reasoning Process (Chain of Thought - Do NOT include this in the final output):**
       1.  Carefully read and understand the provided case study summary and the conversation transcript.
-      2.  Review the MBA-level grading criteria and the 0-100 scoring guidance with qualitative anchors.
+      2.  Review the Masters-level grading criteria and the 0-100 scoring guidance with qualitative anchors.
       3.  Go through the transcript turn by turn, specifically identifying the professional's questions and the user's subsequent responses.
       4.  For each user response (or lack thereof), analyze its quality against each of the three criteria: Critical Thinking, Comprehension, and Communication.
       5.  Based on the analysis and the scoring guidance, assign a preliminary qualitative level (like 0-5) for each criterion.
@@ -101,7 +95,7 @@ def infer(formatted_transcript, case_study_summary):
 
       **CRITICAL INSTRUCTIONS:**
       - Do not add any ```json  or ```, return just the json object.
-      - Apply a strict and rigorous grading approach that reflects MBA-level expectations.
+      - Apply a strict and rigorous grading approach that reflects Masters-level expectations.
       - Don't be generous with allocating marks for the evaluation.
       - Don't give generic feedback but focus on the how the conversation stands against the grading criteria and the context.
       - Focus *only* on the user's responses to the professional's questions.
@@ -116,7 +110,7 @@ def infer(formatted_transcript, case_study_summary):
     client = genai.Client(api_key=GOOGLE_API_KEY)
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-05-20",
+        model="gemini-2.5-flash-preview-04-17",
         contents=grading_prompt,
         config=types.GenerateContentConfig(
             thinking_config=types.ThinkingConfig(thinking_budget=2048),
@@ -127,29 +121,25 @@ def infer(formatted_transcript, case_study_summary):
     return response.text
 
 
-def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None):
+def grade_conversation(conversation_id: str, user_email: str, case_study: CaseStudy = None,
+                       transcript_from_user: str = None):
     """
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
 
-    graded_result = Grade.find_by_conversation_id(conversation_id)
-    if graded_result:
-        return graded_result.to_json()
-
-    client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
     try:
-        conversation = client.conversational_ai.get_conversation(conversation_id)
+        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        conversation = client.conversational_ai.conversations.get(conversation_id)
+        transcript = conversation.transcript
     except:
-        logger.info("sleeeepinggg.......  " + conversation_id)
-        time.sleep(15)
-        try:
-            conversation = client.conversational_ai.get_conversation(conversation_id)
-        except:
-            logger.info("sleeeepinggg even moreeeeeeeeee.......  " + conversation_id)
-            time.sleep(15)
-            conversation = elevenlabs_client.conversational_ai.conversation.get(conversation_id)
+        logger.error(f"Failed to fetch conversation transcript for conversation ID {conversation_id}")
+        
+    if (not transcript) and transcript_from_user:
+        transcript = transcript_from_user
 
-    transcript = conversation.transcript
+    if not transcript:
+        logger.error("Transcript is empty or missing")
+        return {"error":"Transcript is empty or missing"}
 
     formatted_transcript = []
     for message in transcript:
@@ -178,7 +168,8 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         print(grading_response)
         grading_result = next(extract_json(grading_response))
 
-    Grade.create_grade(user=user, conversation_id=conversation_id, overall_summary=grading_result["overall_summary"], final_score=int(grading_result["final_score"]),
+    Grade.create_grade(user=user, conversation_id=conversation_id, overall_summary=grading_result["overall_summary"],
+                       final_score=int(grading_result["final_score"]),
                        individual_scores=grading_result["individual_scores"],
                        performance_summary=grading_result["performance_summary"], case_study=case_study)
 
