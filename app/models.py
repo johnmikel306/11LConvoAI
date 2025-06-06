@@ -185,6 +185,10 @@ class ConversationLog(Document):
         """
         Create and save a new conversation log entry.
         """
+        existing_log = cls.objects(conversation_id=conversation_id).first()
+
+        if existing_log: return existing_log
+
         log = cls(
             user=user,
             conversation_id=conversation_id,
