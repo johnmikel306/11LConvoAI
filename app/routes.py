@@ -56,8 +56,7 @@ def init_routes(app):
             # Check if a case study ID was provided
             case_study_id = request.args.get('case_study_id')
 
-            # Default agent ID from environment variable
-            agent_id = os.getenv('AGENT_ID')
+            agent_id = None
             case_study = None
 
             # If a case study ID is provided, use its agent ID instead

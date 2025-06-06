@@ -1,5 +1,3 @@
-import os
-
 from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
@@ -12,10 +10,6 @@ load_dotenv()
 
 def init_app():
     app = Flask(__name__)
-
-    app.secret_key = os.getenv("SECRET_KEY")
-    if not app.secret_key:
-        raise ValueError("SECRET_KEY environment variable is required for session management.")
 
     CORS(app, resources={r"/v1/*": {
         "origins": ["http://localhost:5173", "http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500",

@@ -130,6 +130,8 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     transcript = conversation.get("transcript") if conversation else transcript_from_user
 
     if not transcript:
+        print({"from_user": transcript_from_user, "from_conversation": conversation.get("transcript"),
+               "conversation": conversation})
         logger.error("Transcript is empty or missing")
         return None
 

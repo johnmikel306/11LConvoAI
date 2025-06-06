@@ -13,7 +13,7 @@ def setup_db():
     """
     load_dotenv()
 
-    required_vars = ["MONGO_URI", "JWT_SECRET", "ELEVENLABS_API_KEY", "AGENT_ID"]
+    required_vars = ["MONGO_URI", "JWT_SECRET", "ELEVENLABS_API_KEY", "GOOGLE_API_KEY"]
     for var in required_vars:
         if not os.getenv(var):
             raise ValueError(f"Missing required environment variable: {var}")
