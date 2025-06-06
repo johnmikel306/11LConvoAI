@@ -145,11 +145,13 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
 
     formatted_transcript = []
     for message in transcript:
+        role = message["role"] if isinstance(message, dict) else getattr(message, "role", None)
+        msg = message["message"] if isinstance(message, dict) else getattr(message, "message", None)
         formatted_transcript.append({
-            "role": message.role,
-            "message": message.message
+            "role": role,
+            "message": msg
         })
-
+        
     user = User.find_by_email(user_email)
 
     if not user:
