@@ -110,7 +110,7 @@ def infer(formatted_transcript, case_study_summary):
     client = genai.Client(api_key=GOOGLE_API_KEY)
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-preview-04-17",
+        model="gemini-2.0-flash",
         contents=grading_prompt,
         config=types.GenerateContentConfig(
             thinking_config=types.ThinkingConfig(thinking_budget=2048),
