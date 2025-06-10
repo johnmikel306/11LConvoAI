@@ -113,7 +113,8 @@ def infer(formatted_transcript, case_study_summary):
         model="gemini-2.0-flash",
         contents=grading_prompt,
         config=types.GenerateContentConfig(
-            response_mime_type="application/json"
+            response_mime_type="application/json",
+            temperature=0.5
         )
     )
 
@@ -126,12 +127,6 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
     conversation = get_conversation(conversation_id)
-    # transcript = conversation.get("transcript") if conversation else transcript_from_user
-    print({"from_user": len(transcript_from_user) if transcript_from_user else 0,
-           "from_conversation": len(conversation.get("transcript")) if conversation and conversation.get(
-               "transcript") else 0,
-           "conversation": conversation})
-
     transcript = transcript_from_user or conversation.get("transcript")
 
     if not transcript:
