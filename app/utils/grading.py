@@ -113,7 +113,6 @@ def infer(formatted_transcript, case_study_summary):
         model="gemini-2.0-flash",
         contents=grading_prompt,
         config=types.GenerateContentConfig(
-            thinking_config=types.ThinkingConfig(thinking_budget=2048),
             response_mime_type="application/json"
         )
     )

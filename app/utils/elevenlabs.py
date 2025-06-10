@@ -28,7 +28,7 @@ def get_signed_url(agent_id: str) -> str | None:
 
 def get_conversation(conversation_id: str) -> dict | None:
     try:
-        r = requests.get(f"https://api.elevenlabs.io//v1/convai/conversations/{conversation_id}", headers=headers)
+        r = requests.get(f"https://api.elevenlabs.io/v1/convai/conversations/{conversation_id}", headers=headers)
         data = r.json()
         return data
     except Exception as e:
