@@ -674,7 +674,9 @@ def init_routes(app):
                 "grading_result": str(grading_result)
             })
         except Exception as e:
-            logger.error(f"Error in grade_conversation_endpoint: {str(e)}", exc_info=True)
+            # Log the error with traceback
+            import traceback
+            logger.error(f"Error in grade_conversation_endpoint: {str(e)}\n{traceback.format_exc()}")
             return jsonify({
                 "status": "error",
                 "message": "Unable to grade conversation. Please try again later"

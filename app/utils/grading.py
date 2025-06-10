@@ -127,7 +127,9 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     """
     conversation = get_conversation(conversation_id)
     # transcript = conversation.get("transcript") if conversation else transcript_from_user
-    print({"from_user": transcript_from_user, "from_conversation": conversation.get("transcript"),
+    print({"from_user": len(transcript_from_user) if transcript_from_user else 0,
+           "from_conversation": len(conversation.get("transcript")) if conversation and conversation.get(
+               "transcript") else 0,
            "conversation": conversation})
 
     transcript = transcript_from_user or conversation.get("transcript")
