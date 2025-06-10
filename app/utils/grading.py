@@ -127,11 +127,13 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
     Fetch the conversation transcript, grade it, and return the structured JSON response.
     """
     conversation = get_conversation(conversation_id)
-    transcript = conversation.get("transcript") if conversation else transcript_from_user
+    # transcript = conversation.get("transcript") if conversation else transcript_from_user
+    print({"from_user": transcript_from_user, "from_conversation": conversation.get("transcript"),
+           "conversation": conversation})
+
+    transcript = transcript_from_user or conversation.get("transcript")
 
     if not transcript:
-        print({"from_user": transcript_from_user, "from_conversation": conversation.get("transcript"),
-               "conversation": conversation})
         logger.error("Transcript is empty or missing")
         return None
 
