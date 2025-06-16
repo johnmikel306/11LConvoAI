@@ -68,10 +68,24 @@ class User(Document):
         return user
 
 
+class CaseStudyAvatar(Document):
+    """
+    Model for storing case study avatars.
+    """
+    name = StringField(required=True)
+    image_display = StringField(required=True)
+    image_thumbnail = StringField(required=True)
+    role = StringField(required=True, min_length=1, max_length=100)
+    bio = StringField(required=True, min_length=1, max_length=1200)
+
+    meta = {'collection': 'case_study_avatars'}
+
+
 class CaseStudy(Document):
     title = StringField(required=True)
     description = StringField(required=True)
     agent_id = StringField()
+    avatar = ReferenceField(CaseStudyAvatar, required=False)  # Reference to CaseStudyAvatar
 
     meta = {'collection': 'case_studies'}
 

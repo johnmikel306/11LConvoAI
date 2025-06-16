@@ -891,7 +891,14 @@ def init_routes(app):
                     "id": str(case.id),
                     "title": case.title,
                     "description": case.description,
-                    "agentID": case.agent_id
+                    "agentID": case.agent_id,
+                    "avatar": {
+                        "name": case.avatar.name if case.avatar else None,
+                        "image_display": case.avatar.image_display if case.avatar else None,
+                        "image_thumbnail": case.avatar.image_thumbnail if case.avatar else None,
+                        "role": case.avatar.role if case.avatar else None,
+                        "bio": case.avatar.bio if case.avatar else None
+                    },
                 })
 
             return jsonify({
@@ -927,7 +934,14 @@ def init_routes(app):
             formatted_case = {
                 "id": str(case_study.id),
                 "title": case_study.title,
-                "description": case_study.description
+                "description": case_study.description,
+                "avatar": {
+                    "name": case_study.avatar.name if case_study.avatar else None,
+                    "image_display": case_study.avatar.image_display if case_study.avatar else None,
+                    "image_thumbnail": case_study.avatar.image_thumbnail if case_study.avatar else None,
+                    "role": case_study.avatar.role if case_study.avatar else None,
+                    "bio": case_study.avatar.bio if case_study.avatar else None
+                },
             }
 
             return jsonify({

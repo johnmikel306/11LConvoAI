@@ -165,10 +165,11 @@ def grade_conversation(conversation_id: str, user_email: str, case_study: CaseSt
         Grade.create_grade(
             user=user,
             conversation_id=conversation_id,
-            overall_summary=grading_result["overall_summary"],
-            final_score=int(grading_result["final_score"]),
-            individual_scores=grading_result["individual_scores"],
-            performance_summary=grading_result["performance_summary"],
+            overall_summary=grading_result["overall_summary"] if "overall_summary" in grading_result else "",
+            final_score=int(grading_result["final_score"]) if "final_score" in grading_result else 0,
+            individual_scores=grading_result["individual_scores"] if "individual_scores" in grading_result else {},
+            performance_summary=grading_result["performance_summary"] if "performance_summary" in grading_result else {
+                "strengths": [], "weaknesses": []},
             case_study=case_study
         )
 
