@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from flask import jsonify, render_template, request, g, Response
 
 from app.utils.jwt import token_required
-from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole
+from .models import CaseStudy, ConversationLog, Grade, Session, User, UserRole, CaseStudyAvatar
 from .services import create_user
 from .utils.auth import check_password, hash_password
 from .utils.cas_helper import validate_service_ticket
@@ -1222,10 +1222,22 @@ def init_routes(app):
                 }), 400
 
             # Create new case study
+            case_study_avatar = None
+            if 'avatar' in data:
+                avatar_data = data['avatar']
+                case_study_avatar = CaseStudyAvatar(
+                    name=avatar_data.get('name'),
+                    image_display=avatar_data.get('image_display'),
+                    image_thumbnail=avatar_data.get('image_thumbnail'),
+                    role=avatar_data.get('role'),
+                    bio=avatar_data.get('bio')
+                )
+                case_study_avatar.save()
             case_study = CaseStudy(
                 title=data['title'],
                 description=data['description'],
-                agent_id=data.get('agent_id')  # Optional field
+                agent_id=data.get('agent_id'),  # Optional field
+                avatar=case_study_avatar  # Optional field
             )
             case_study.save()
 
@@ -1235,8 +1247,6 @@ def init_routes(app):
                 "case_study": {
                     "id": str(case_study.id),
                     "title": case_study.title,
-                    "description": case_study.description,
-                    "agent_id": case_study.agent_id
                 }
             }), 201
 
